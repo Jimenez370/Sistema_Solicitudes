@@ -1,67 +1,28 @@
-"""Ontología del dominio universitario como grafo de tripletas Sujeto -> Predicado -> Objeto."""
+"""Ontología del dominio universitario como grafo de tripletas Sujeto -> Predicado -> Objeto.
+
+Las tripletas y los términos se cargan desde data/ontologia.json.
+"""
+import json
+import os
+
 import networkx as nx
 from preprocesamiento import normalizar
 
-# (Sujeto, Predicado, Objeto)
-TRIPLETAS = [
-    # Conceptos -> categoría
-    ("Calificación", "pertenece_a", "Académica"),
-    ("Examen", "pertenece_a", "Académica"),
-    ("Materia", "pertenece_a", "Académica"),
-    ("Beca", "pertenece_a", "Financiera/Becas"),
-    ("Colegiatura", "pertenece_a", "Financiera/Becas"),
-    ("Reembolso", "pertenece_a", "Financiera/Becas"),
-    ("Red", "pertenece_a", "Soporte Técnico"),
-    ("Plataforma", "pertenece_a", "Soporte Técnico"),
-    ("Contraseña", "pertenece_a", "Soporte Técnico"),
-    ("Constancia", "pertenece_a", "Servicios Escolares"),
-    ("Baja", "pertenece_a", "Servicios Escolares"),
-    ("Kárdex", "pertenece_a", "Servicios Escolares"),
-    ("Acoso", "pertenece_a", "Bienestar Universitario"),
-    ("Emergencia", "pertenece_a", "Bienestar Universitario"),
-    ("Apoyo psicológico", "pertenece_a", "Bienestar Universitario"),
-    # Conceptos -> departamento responsable
-    ("Calificación", "gestionada_por", "Servicios Escolares"),
-    ("Examen", "gestionada_por", "Coordinación Académica"),
-    ("Materia", "gestionada_por", "Coordinación Académica"),
-    ("Beca", "gestionada_por", "Servicios Escolares"),
-    ("Colegiatura", "gestionada_por", "Caja y Finanzas"),
-    ("Reembolso", "gestionada_por", "Caja y Finanzas"),
-    ("Red", "gestionada_por", "Soporte Técnico"),
-    ("Plataforma", "gestionada_por", "Soporte Técnico"),
-    ("Contraseña", "gestionada_por", "Soporte Técnico"),
-    ("Constancia", "gestionada_por", "Servicios Escolares"),
-    ("Baja", "gestionada_por", "Servicios Escolares"),
-    ("Kárdex", "gestionada_por", "Servicios Escolares"),
-    ("Acoso", "gestionada_por", "Bienestar Universitario"),
-    ("Emergencia", "gestionada_por", "Bienestar Universitario"),
-    ("Apoyo psicológico", "gestionada_por", "Bienestar Universitario"),
-    # Departamentos -> estructura
-    ("Servicios Escolares", "depende_de", "Secretaría Académica"),
-    ("Coordinación Académica", "depende_de", "Secretaría Académica"),
-    ("Caja y Finanzas", "depende_de", "Administración"),
-    ("Soporte Técnico", "depende_de", "Dirección de TI"),
-    ("Bienestar Universitario", "depende_de", "Dirección"),
-]
+_DIR = os.path.dirname(os.path.abspath(__file__))
+_RUTA_JSON = os.path.join(_DIR, "data", "ontologia.json")
 
-# Términos del texto (ya normalizados) que activan cada concepto
-TERMINOS = {
-    "Calificación": ["calificacion", "calificaciones", "nota", "promedio", "kardex"],
-    "Examen": ["examen", "parcial", "extraordinario", "evaluacion"],
-    "Materia": ["materia", "profesor", "docente", "maestro", "clase", "curso", "tutoria"],
-    "Beca": ["beca", "becas", "manutencion", "apoyo economico"],
-    "Colegiatura": ["colegiatura", "mensualidad", "pago", "pagar", "adeudo", "inscripcion"],
-    "Reembolso": ["reembolso", "cobraron", "cargo"],
-    "Red": ["red", "wifi", "internet", "conexion", "servidor"],
-    "Plataforma": ["plataforma", "moodle", "portal", "sistema", "correo"],
-    "Contraseña": ["contrasena", "sesion", "cuenta", "bloqueada"],
-    "Constancia": ["constancia", "certificado", "credencial", "carta", "titulacion", "expediente"],
-    "Baja": ["baja", "reinscripcion", "cambio de carrera", "equivalencia"],
-    "Kárdex": ["kardex", "historial"],
-    "Acoso": ["acoso", "hostiga", "amenaza", "bullying", "violencia", "agresion", "discriminacion"],
-    "Emergencia": ["emergencia", "accidente", "desmayo", "herido", "robo"],
-    "Apoyo psicológico": ["psicologico", "psicologia", "ansiedad", "deprimida", "depresion", "estres"],
-}
+
+def _cargar_ontologia() -> tuple[list[tuple[str, str, str]], dict[str, list[str]]]:
+    """Lee el archivo JSON y devuelve (tripletas, términos)."""
+    with open(_RUTA_JSON, "r", encoding="utf-8") as f:
+        contenido = json.load(f)
+    tripletas = [(t["sujeto"], t["predicado"], t["objeto"])
+                 for t in contenido["tripletas"]]
+    terminos = contenido["terminos"]
+    return tripletas, terminos
+
+
+TRIPLETAS, TERMINOS = _cargar_ontologia()
 
 
 def construir_grafo() -> nx.DiGraph:

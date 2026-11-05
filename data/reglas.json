@@ -1,0 +1,74 @@
+{
+  "prioridad_base": {
+    "Académica": "Baja",
+    "Financiera/Becas": "Baja",
+    "Servicios Escolares": "Baja",
+    "Soporte Técnico": "Media",
+    "Bienestar Universitario": "Media"
+  },
+  "reglas": [
+    {
+      "nombre": "R1_acoso_violencia",
+      "terminos": ["acoso", "hostiga", "amenaza", "amenazas", "violencia", "agresion", "bullying", "maltrato", "discriminacion", "comentarios inapropiados"],
+      "requiere_categoria": null,
+      "prioridad": "Alta",
+      "alerta_humana": true,
+      "forzar_categoria": "Bienestar Universitario",
+      "descripcion": "SI contiene acoso/violencia ENTONCES prioridad Alta + alerta a supervisor"
+    },
+    {
+      "nombre": "R2_emergencia",
+      "terminos": ["emergencia", "accidente", "herido", "desmayo", "ambulancia", "hacerse dano", "suicidio", "suicidarme", "quitarme la vida"],
+      "requiere_categoria": null,
+      "prioridad": "Alta",
+      "alerta_humana": true,
+      "forzar_categoria": "Bienestar Universitario",
+      "descripcion": "SI contiene emergencia/riesgo vital ENTONCES prioridad Alta + alerta"
+    },
+    {
+      "nombre": "R3_seguridad",
+      "terminos": ["robo", "asalto", "inseguro", "arma"],
+      "requiere_categoria": null,
+      "prioridad": "Alta",
+      "alerta_humana": true,
+      "forzar_categoria": "Bienestar Universitario",
+      "descripcion": "SI contiene robo/inseguridad ENTONCES prioridad Alta + alerta"
+    },
+    {
+      "nombre": "R4_falla_masiva",
+      "terminos": ["falla", "caida", "cayo", "impide", "nos impide", "no responde", "toda la", "todos"],
+      "requiere_categoria": "Soporte Técnico",
+      "prioridad": "Alta",
+      "alerta_humana": false,
+      "forzar_categoria": null,
+      "descripcion": "SI categoría=Soporte Y hay falla/caída general ENTONCES prioridad Alta"
+    },
+    {
+      "nombre": "R5_urgencia_explicita",
+      "terminos": ["urgente", "urgencia", "hoy", "manana", "inmediato", "lo antes posible"],
+      "requiere_categoria": null,
+      "prioridad": "Media",
+      "alerta_humana": false,
+      "forzar_categoria": null,
+      "descripcion": "SI el usuario indica urgencia ENTONCES prioridad al menos Media"
+    },
+    {
+      "nombre": "R6_plazos",
+      "terminos": ["fecha limite", "cierre de", "plazo", "vence", "antes del cierre"],
+      "requiere_categoria": null,
+      "prioridad": "Media",
+      "alerta_humana": false,
+      "forzar_categoria": null,
+      "descripcion": "SI menciona plazos/fechas límite ENTONCES prioridad al menos Media"
+    },
+    {
+      "nombre": "R7_dinero_retenido",
+      "terminos": ["suspendieron", "no me ha llegado", "cobraron dos veces"],
+      "requiere_categoria": "Financiera/Becas",
+      "prioridad": "Media",
+      "alerta_humana": false,
+      "forzar_categoria": null,
+      "descripcion": "SI hay problema de dinero/beca retenida ENTONCES prioridad Media"
+    }
+  ]
+}

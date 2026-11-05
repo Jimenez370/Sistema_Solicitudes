@@ -1,5 +1,7 @@
 """Agente inteligente racional (modelo REAS / PAMA) con supervisión humana.
 
+La configuración del agente (canales, umbral) se carga desde data/agente_config.json.
+
 REAS (agente racional):
   Rendimiento : clasificar/priorizar/canalizar correctamente y escalar lo crítico.
   Entorno     : solicitudes universitarias en texto libre.
@@ -7,6 +9,8 @@ REAS (agente racional):
   Sensores    : texto de la solicitud.
 PAMA (ciclo): Percepción -> Análisis (IA) -> Meta (reglas) -> Acción.
 """
+import json
+import os
 from dataclasses import dataclass, field
 
 import ontologia
@@ -14,16 +18,20 @@ from clasificador import ClasificadorSolicitudes
 from preprocesamiento import extraer_palabras_clave
 from reglas import aplicar_reglas
 
-UMBRAL_CONFIANZA = 0.50
-BANDEJA_SUPERVISOR = "Bandeja de revisión por Supervisor Humano"
+_DIR = os.path.dirname(os.path.abspath(__file__))
+_RUTA_JSON = os.path.join(_DIR, "data", "agente_config.json")
 
-CANAL_POR_DEFECTO = {
-    "Académica": "Coordinación Académica",
-    "Financiera/Becas": "Servicios Escolares",
-    "Soporte Técnico": "Soporte Técnico",
-    "Servicios Escolares": "Servicios Escolares",
-    "Bienestar Universitario": "Bienestar Universitario",
-}
+
+def _cargar_config() -> dict:
+    """Lee la configuración del agente desde el JSON."""
+    with open(_RUTA_JSON, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+_CONFIG = _cargar_config()
+UMBRAL_CONFIANZA = _CONFIG["umbral_confianza"]
+BANDEJA_SUPERVISOR = _CONFIG["bandeja_supervisor"]
+CANAL_POR_DEFECTO = _CONFIG["canal_por_defecto"]
 
 
 @dataclass

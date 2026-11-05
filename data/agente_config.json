@@ -1,0 +1,11 @@
+{
+  "canal_por_defecto": {
+    "Académica": "Coordinación Académica",
+    "Financiera/Becas": "Servicios Escolares",
+    "Soporte Técnico": "Soporte Técnico",
+    "Servicios Escolares": "Servicios Escolares",
+    "Bienestar Universitario": "Bienestar Universitario"
+  },
+  "umbral_confianza": 0.50,
+  "bandeja_supervisor": "Bandeja de revisión por Supervisor Humano"
+}

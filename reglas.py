@@ -1,22 +1,17 @@
 """Motor de reglas de producción SI-ENTONCES (conocimiento simbólico).
 
-Cada regla evalúa un contexto (texto normalizado, categoría y confianza del
-clasificador) y, si se cumple, dispara una acción: subir prioridad,
-forzar categoría o exigir supervisión humana.
+Las reglas y prioridades se cargan desde data/reglas.json para separar
+el conocimiento del código.
 """
+import json
+import os
 from dataclasses import dataclass, field
 from preprocesamiento import normalizar
 
-ORDEN = {"Baja": 0, "Media": 1, "Alta": 2}
+_DIR = os.path.dirname(os.path.abspath(__file__))
+_RUTA_JSON = os.path.join(_DIR, "data", "reglas.json")
 
-# Prioridad por defecto según la categoría (cuando ninguna regla la sube)
-PRIORIDAD_BASE = {
-    "Académica": "Baja",
-    "Financiera/Becas": "Baja",
-    "Servicios Escolares": "Baja",
-    "Soporte Técnico": "Media",
-    "Bienestar Universitario": "Media",
-}
+ORDEN = {"Baja": 0, "Media": 1, "Alta": 2}
 
 
 def contiene(texto: str, terminos: list[str]) -> bool:
@@ -27,47 +22,40 @@ def contiene(texto: str, terminos: list[str]) -> bool:
 @dataclass
 class Regla:
     nombre: str
-    condicion: callable             # SI: (texto_normalizado, categoria) -> bool
-    prioridad: str | None = None    # ENTONCES: prioridad mínima
-    alerta_humana: bool = False     # ENTONCES: enviar a supervisor
-    categoria: str | None = None    # ENTONCES: forzar categoría
+    terminos: list[str]
+    requiere_categoria: str | None = None
+    prioridad: str | None = None
+    alerta_humana: bool = False
+    categoria: str | None = None
     descripcion: str = ""
 
+    def condicion(self, texto: str, cat: str) -> bool:
+        """Evalúa si la regla se activa dado el texto normalizado y la categoría."""
+        if self.requiere_categoria and cat != self.requiere_categoria:
+            return False
+        return contiene(texto, self.terminos)
 
-REGLAS = [
-    Regla("R1_acoso_violencia",
-          lambda t, c: contiene(t, ["acoso", "hostiga", "amenaza", "amenazas", "violencia",
-                                    "agresion", "bullying", "maltrato", "discriminacion",
-                                    "comentarios inapropiados"]),
-          prioridad="Alta", alerta_humana=True, categoria="Bienestar Universitario",
-          descripcion="SI contiene acoso/violencia ENTONCES prioridad Alta + alerta a supervisor"),
-    Regla("R2_emergencia",
-          lambda t, c: contiene(t, ["emergencia", "accidente", "herido", "desmayo", "ambulancia",
-                                    "hacerse dano", "suicidio", "suicidarme", "quitarme la vida"]),
-          prioridad="Alta", alerta_humana=True, categoria="Bienestar Universitario",
-          descripcion="SI contiene emergencia/riesgo vital ENTONCES prioridad Alta + alerta"),
-    Regla("R3_seguridad",
-          lambda t, c: contiene(t, ["robo", "asalto", "inseguro", "arma"]),
-          prioridad="Alta", alerta_humana=True, categoria="Bienestar Universitario",
-          descripcion="SI contiene robo/inseguridad ENTONCES prioridad Alta + alerta"),
-    Regla("R4_falla_masiva",
-          lambda t, c: c == "Soporte Técnico" and contiene(
-              t, ["falla", "caida", "cayo", "impide", "nos impide", "no responde", "toda la", "todos"]),
-          prioridad="Alta",
-          descripcion="SI categoría=Soporte Y hay falla/caída general ENTONCES prioridad Alta"),
-    Regla("R5_urgencia_explicita",
-          lambda t, c: contiene(t, ["urgente", "urgencia", "hoy", "manana", "inmediato", "lo antes posible"]),
-          prioridad="Media",
-          descripcion="SI el usuario indica urgencia ENTONCES prioridad al menos Media"),
-    Regla("R6_plazos",
-          lambda t, c: contiene(t, ["fecha limite", "cierre de", "plazo", "vence", "antes del cierre"]),
-          prioridad="Media",
-          descripcion="SI menciona plazos/fechas límite ENTONCES prioridad al menos Media"),
-    Regla("R7_dinero_retenido",
-          lambda t, c: c == "Financiera/Becas" and contiene(t, ["suspendieron", "no me ha llegado", "cobraron dos veces"]),
-          prioridad="Media",
-          descripcion="SI hay problema de dinero/beca retenida ENTONCES prioridad Media"),
-]
+
+def _cargar_reglas() -> tuple[dict[str, str], list[Regla]]:
+    """Lee el archivo JSON y devuelve (prioridad_base, lista_de_reglas)."""
+    with open(_RUTA_JSON, "r", encoding="utf-8") as f:
+        contenido = json.load(f)
+    prioridad_base = contenido["prioridad_base"]
+    reglas = []
+    for r in contenido["reglas"]:
+        reglas.append(Regla(
+            nombre=r["nombre"],
+            terminos=r["terminos"],
+            requiere_categoria=r.get("requiere_categoria"),
+            prioridad=r.get("prioridad"),
+            alerta_humana=r.get("alerta_humana", False),
+            categoria=r.get("forzar_categoria"),
+            descripcion=r.get("descripcion", ""),
+        ))
+    return prioridad_base, reglas
+
+
+PRIORIDAD_BASE, REGLAS = _cargar_reglas()
 
 
 @dataclass
