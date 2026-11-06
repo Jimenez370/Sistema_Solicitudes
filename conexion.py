@@ -15,7 +15,7 @@ def _cargar_env() -> dict[str, str]:
         "DB_PORT": "5432",
         "DB_NAME": "SICOU_IA",
         "DB_USER": "postgres",
-        "DB_PASSWORD": "",
+        "DB_PASSWORD": "12345",
     }
     if os.path.exists(_ENV_PATH):
         with open(_ENV_PATH, "r", encoding="utf-8") as f:
@@ -163,3 +163,87 @@ if __name__ == "__main__":
             print(f"  [{f['id']}] {f['nombre']}")
     except Exception as e:
         print(f"❌ Error al conectar o inicializar: {e}")
+
+
+def guardar_solicitud(usuario_id: int, resultado) -> tuple[bool, str]:
+    """
+    Guarda en PostgreSQL una solicitud procesada por el agente inteligente.
+    """
+
+    # Buscar el departamento correspondiente al canal del agente.
+    query_departamento = """
+        SELECT id
+        FROM departamentos
+        WHERE nombre = %s;
+    """
+
+    # Insertar la solicitud.
+    query_solicitud = """
+        INSERT INTO solicitudes (
+            usuario_id,
+            departamento_id,
+            descripcion,
+            categoria,
+            prioridad,
+            canal_destino,
+            confianza,
+            alerta_supervisor,
+            motivo_alerta,
+            palabras_clave,
+            reglas_activadas,
+            conceptos,
+            tripletas,
+            notificaciones
+        )
+        VALUES (
+            %s, %s, %s, %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s, %s
+        )
+        RETURNING id;
+    """
+
+    try:
+        import json
+
+        departamento_id = None
+
+        # Las solicitudes que van al supervisor no se asignan
+        # directamente a un departamento.
+        if not resultado.alerta_supervisor or resultado.motivo_alerta.startswith("Criticidad alta"):
+            with get_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(query_departamento, (resultado.canal,))
+                    departamento = cur.fetchone()
+
+                    if departamento:
+                        departamento_id = departamento["id"]
+
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    query_solicitud,
+                    (
+                        usuario_id,
+                        departamento_id,
+                        resultado.texto,
+                        resultado.categoria,
+                        resultado.prioridad,
+                        resultado.canal,
+                        resultado.confianza,
+                        resultado.alerta_supervisor,
+                        resultado.motivo_alerta,
+                        json.dumps(resultado.palabras_clave, ensure_ascii=False),
+                        json.dumps(resultado.reglas, ensure_ascii=False),
+                        json.dumps(resultado.conceptos, ensure_ascii=False),
+                        json.dumps(resultado.tripletas, ensure_ascii=False),
+                        json.dumps(resultado.notificaciones, ensure_ascii=False)
+                    )
+                )
+
+                solicitud_id = cur.fetchone()["id"]
+                conn.commit()
+
+        return True, f"Solicitud registrada correctamente. ID: {solicitud_id}"
+
+    except Exception as e:
+        return False, f"Error al guardar la solicitud: {str(e)}"

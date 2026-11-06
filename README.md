@@ -31,3 +31,95 @@ Sistema_Solicitudes\database\schema.sql
 cd Sistema_Solicitudes
 python server.py    
 
+# tablas de departamentos y de solicitudes
+# agregar en la base de datos:
+
+-- ==========================================
+-- 1. TABLA DE DEPARTAMENTOS
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS departamentos (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(150) NOT NULL UNIQUE,
+    activo BOOLEAN DEFAULT TRUE
+);
+
+INSERT INTO departamentos (nombre) VALUES
+    ('Coordinación Académica'),
+    ('Servicios Escolares'),
+    ('Soporte Técnico'),
+    ('Bienestar Universitario')
+ON CONFLICT (nombre) DO NOTHING;
+
+
+-- ==========================================
+-- 2. RELACIONAR GERENTES CON DEPARTAMENTOS
+-- ==========================================
+
+ALTER TABLE usuarios
+ADD COLUMN IF NOT EXISTS departamento_id INT
+REFERENCES departamentos(id) ON DELETE RESTRICT;
+
+
+-- ==========================================
+-- 3. TABLA DE SOLICITUDES
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS solicitudes (
+    id SERIAL PRIMARY KEY,
+
+    usuario_id INT NOT NULL,
+    departamento_id INT,
+
+    descripcion TEXT NOT NULL,
+
+    categoria VARCHAR(100) NOT NULL,
+    prioridad VARCHAR(50) NOT NULL,
+
+    canal_destino VARCHAR(150) NOT NULL,
+
+    confianza NUMERIC(5,4) NOT NULL,
+
+    alerta_supervisor BOOLEAN DEFAULT FALSE,
+    motivo_alerta TEXT,
+
+    estado VARCHAR(50) DEFAULT 'Pendiente',
+
+    palabras_clave JSONB,
+    reglas_activadas JSONB,
+    conceptos JSONB,
+    tripletas JSONB,
+    notificaciones JSONB,
+
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_solicitud_usuario
+        FOREIGN KEY (usuario_id)
+        REFERENCES usuarios(id) ON DELETE RESTRICT,
+
+    CONSTRAINT fk_solicitud_departamento
+        FOREIGN KEY (departamento_id)
+        REFERENCES departamentos(id) ON DELETE RESTRICT,
+
+    CONSTRAINT chk_confianza
+        CHECK (confianza >= 0 AND confianza <= 1)
+);
+
+
+-- ==========================================
+-- 4. ÍNDICES PARA CONSULTAS
+-- ==========================================
+
+CREATE INDEX IF NOT EXISTS idx_solicitudes_usuario
+ON solicitudes(usuario_id);
+
+CREATE INDEX IF NOT EXISTS idx_solicitudes_departamento
+ON solicitudes(departamento_id);
+
+CREATE INDEX IF NOT EXISTS idx_solicitudes_estado
+ON solicitudes(estado);
+
+CREATE INDEX IF NOT EXISTS idx_solicitudes_fecha
+ON solicitudes(fecha_creacion);
+
+

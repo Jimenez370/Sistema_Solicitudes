@@ -17,6 +17,12 @@ try:
 except ImportError:
     conexion = None
 
+# Importar el agente inteligente
+try:
+    from agente import AgenteSolicitudes
+except ImportError:
+    AgenteSolicitudes = None
+
 
 class CustomHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -107,6 +113,72 @@ class CustomHandler(SimpleHTTPRequestHandler):
             else:
                 return self._responder_json(401, {"ok": False, "mensaje": mensaje})
 
+        
+        # Endpoint API: Crear solicitud y procesarla con el agente IA
+        if url.path == "/api/solicitudes":
+
+            if not conexion:
+                return self._responder_json(
+                    500,
+                    {"error": "Módulo de conexión no disponible"}
+                )
+
+            if AgenteSolicitudes is None:
+                return self._responder_json(
+                    500,
+                    {"error": "Agente inteligente no disponible"}
+                )
+
+            descripcion = datos.get("descripcion")
+            usuario_id = datos.get("usuario_id")
+
+            if not descripcion or not usuario_id:
+                return self._responder_json(
+                    400,
+                    {"error": "La descripción y el usuario son obligatorios"}
+                )
+
+            try:
+                # 1. Ejecutar el agente inteligente
+                agente = AgenteSolicitudes()
+                resultado = agente.procesar(descripcion)
+
+                # 2. Guardar el resultado en PostgreSQL
+                ok, mensaje = conexion.guardar_solicitud(
+                    int(usuario_id),
+                    resultado
+                )
+
+                if not ok:
+                    return self._responder_json(
+                        500,
+                        {"error": mensaje}
+                    )
+
+                # 3. Responder al frontend
+                return self._responder_json(
+                    201,
+                    {
+                        "ok": True,
+                        "mensaje": mensaje,
+                        "analisis": {
+                            "categoria": resultado.categoria,
+                            "prioridad": resultado.prioridad,
+                            "canal": resultado.canal,
+                            "confianza": resultado.confianza,
+                            "alerta_supervisor": resultado.alerta_supervisor,
+                            "motivo_alerta": resultado.motivo_alerta
+                        }
+                    }
+                )
+
+            except Exception as e:
+                return self._responder_json(
+                    500,
+                    {"error": f"Error al procesar la solicitud: {str(e)}"}
+                )
+
+        
         return self._responder_json(404, {"error": "Ruta no encontrada"})
 
 
