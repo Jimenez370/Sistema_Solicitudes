@@ -1,0 +1,117 @@
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Sistema Universitario | Panel de Gerencia</title>
+
+    <link rel="stylesheet" href="../css/estilo_areas.css">
+</head>
+
+<body>
+
+    <!-- Encabezado -->
+    <header class="encabezado">
+
+        <div class="logo">
+            <h2>Sistema Universitario</h2>
+        </div>
+
+        <div class="usuario">
+            <span>Gerente de Área</span>
+            <button id="btnCerrarSesion">Cerrar sesión</button>
+        </div>
+
+    </header>
+
+    <div class="contenedor">
+
+        <!-- Menú lateral -->
+        <aside class="sidebar">
+
+            <h3>MENÚ PRINCIPAL</h3>
+
+            <nav>
+                <a href="#" class="activo">Inicio</a>
+                <a href="#">Solicitudes</a>
+                <a href="#">Notificaciones</a>
+                <a href="#">Mi perfil</a>
+            </nav>
+
+        </aside>
+
+
+        <!-- Contenido principal -->
+        <main class="contenido">
+
+            <section class="bienvenida">
+                <h1>Panel de Gerencia</h1>
+                <p>Bienvenido al sistema de gestión de solicitudes universitarias.</p>
+                <h3 id="nombreArea">Área Académica</h3>
+            </section>
+
+            <section class="estadisticas">
+
+                <div class="tarjeta">
+                    <h3>Total de solicitudes</h3>
+                    <p id="totalSolicitudes">25</p>
+                </div>
+
+                <div class="tarjeta">
+                    <h3>Pendientes</h3>
+                    <p id="solicitudesPendientes">8</p>
+                </div>
+
+                <div class="tarjeta">
+                    <h3>En revisión</h3>
+                    <p id="solicitudesRevision">5</p>
+                </div>
+
+                <div class="tarjeta">
+                    <h3>Resueltas</h3>
+                    <p id="solicitudesResueltas">12</p>
+                </div>
+
+            </section>
+
+
+            <!-- Solicitudes recientes -->
+            <section class="seccion-solicitudes">
+
+                <div class="titulo-seccion">
+                    <h2>Solicitudes recientes</h2>
+                    <button id="btnVerTodas">Ver todas</button>
+                </div>
+
+                <table>
+
+                    <thead>
+                        <tr>
+                            <th>Folio</th>
+                            <th>Alumno</th>
+                            <th>Solicitud</th>
+                            <th>Fecha</th>
+                            <th>Estado</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="tablaSolicitudes">
+
+                    </tbody>
+
+                </table>
+
+            </section>
+
+        </main>
+
+    </div>
+
+    <script src="js/app.js"></script>
+
+</body>
+</html>
