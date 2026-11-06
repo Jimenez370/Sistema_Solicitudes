@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Universitario | Acceso</title>
+    <link rel="stylesheet" href="../css/estilo_login.css">
+</head>
+<body>
+
+    <!-- Fondo de ondas y partículas estilo abstracto -->
+    <div class="bg-waves">
+        <div class="wave"></div>
+        <div class="wave"></div>
+    </div>
+
+    <div class="login-card">
+
+        <!-- Mensaje de estado/alerta -->
+        <div id="mensajeAlerta" class="alerta-msg"></div>
+
+        <!-- ========================================== -->
+        <!-- FORMULARIO 1: INICIAR SESIÓN (LOGIN)       -->
+        <!-- ========================================== -->
+        <div id="seccionLogin" class="formulario activo">
+            <div class="card-header">
+                <h2>Login</h2>
+                <p>Ingresa tus credenciales para acceder</p>
+            </div>
+
+            <form id="formLogin">
+                <!-- Correo Electrónico -->
+                <div class="form-group">
+                    <div class="input-container">
+                        <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <input type="email" id="loginCorreo" placeholder="Correo electrónico" required autocomplete="email">
+                    </div>
+                </div>
+
+                <!-- Contraseña -->
+                <div class="form-group">
+                    <div class="input-container">
+                        <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        <input type="password" id="loginPassword" placeholder="Contraseña" required autocomplete="current-password">
+                    </div>
+                </div>
+
+                <!-- Selección de Área / Facultad -->
+                <div class="form-group">
+                    <div class="input-container">
+                        <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <select id="loginFacultad" required>
+                            <option value="" disabled selected>Selecciona tu Facultad / Área</option>
+                            <option value="1">Facultad de Arquitectura</option>
+                            <option value="2">Facultad de Contaduría y Administración</option>
+                            <option value="3">Facultad de Ingeniería</option>
+                            <option value="4">Facultad de Lenguas</option>
+                            <option value="5">Facultad de Ciencias en Física y Matemáticas</option>
+                            <option value="6">Facultad de Medicina Humana</option>
+                            <option value="7">Facultad de Medicina Veterinaria y Zootecnia</option>
+                            <option value="8">Facultad de Humanidades</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Recordarme y Olvido de contraseña -->
+                <div class="form-options">
+                    <label class="remember-me">
+                        <input type="checkbox" id="rememberMe">
+                        <span>Remember me</span>
+                    </label>
+                    <a href="#" class="forgot-password" onclick="alert('Funcionalidad de recuperación en desarrollo'); return false;">Forgot your password?</a>
+                </div>
+
+                <!-- Botón de Login -->
+                <button type="submit" class="btn-submit">LOGIN</button>
+
+                <!-- Ir a Registro -->
+                <div class="card-footer">
+                    <span>New here?</span>
+                    <a href="#" id="linkIrRegistro">Sign Up</a>
+                </div>
+            </form>
+        </div>
+
+
+        <!-- ========================================== -->
+        <!-- FORMULARIO 2: REGISTRO DE USUARIO          -->
+        <!-- ========================================== -->
+        <div id="seccionRegistro" class="formulario">
+            <div class="card-header">
+                <h2>Sign Up</h2>
+                <p>Crea tu cuenta universitaria</p>
+            </div>
+
+            <form id="formRegistro">
+                <!-- Nombre Completo -->
+                <div class="form-group">
+                    <div class="input-container">
+                        <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <input type="text" id="regNombre" placeholder="Nombre completo" required autocomplete="name">
+                    </div>
+                </div>
+
+                <!-- Correo Electrónico -->
+                <div class="form-group">
+                    <div class="input-container">
+                        <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                        </svg>
+                        <input type="email" id="regCorreo" placeholder="Correo universitario" required autocomplete="email">
+                    </div>
+                </div>
+
+                <!-- Contraseña -->
+                <div class="form-group">
+                    <div class="input-container">
+                        <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        <input type="password" id="regPassword" placeholder="Contraseña" required autocomplete="new-password">
+                    </div>
+                </div>
+
+                <!-- Elección de Facultad / Área requerida al registrarse -->
+                <div class="form-group">
+                    <div class="input-container">
+                        <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <select id="regFacultad" required>
+                            <option value="" disabled selected>Elige tu Facultad de adscripción</option>
+                            <option value="1">Facultad de Arquitectura</option>
+                            <option value="2">Facultad de Contaduría y Administración</option>
+                            <option value="3">Facultad de Ingeniería</option>
+                            <option value="4">Facultad de Lenguas</option>
+                            <option value="5">Facultad de Ciencias en Física y Matemáticas</option>
+                            <option value="6">Facultad de Medicina Humana</option>
+                            <option value="7">Facultad de Medicina Veterinaria y Zootecnia</option>
+                            <option value="8">Facultad de Humanidades</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Botón de Registro -->
+                <button type="submit" class="btn-submit">REGISTRARSE</button>
+
+                <!-- Volver a Login -->
+                <div class="card-footer">
+                    <span>Already have an account?</span>
+                    <a href="#" id="linkIrLogin">Login</a>
+                </div>
+            </form>
+        </div>
+
+    </div>
+
+    <!-- Script de interacción -->
+    <script src="../js/login.js"></script>
+</body>
+</html>

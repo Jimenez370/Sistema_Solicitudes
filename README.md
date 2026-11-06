@@ -12,19 +12,22 @@ python main.py -i             # modo interactivo (texto libre)
 python pruebas.py             # Fase 6: tabla de pruebas + accuracy
 ```
 
-## Módulos
-| Archivo | Función | ¿Es IA? |
-|---|---|---|
-| `dataset.py` | 80 solicitudes etiquetadas (16 por categoría) | Datos de entrenamiento |
-| `preprocesamiento.py` | Normalización, tokenización, stopwords, stemming (NLTK Snowball), palabras clave | PLN |
-| `clasificador.py` | TF-IDF + Regresión Logística; devuelve categoría y probabilidad | **IA (aprendizaje automático)** |
-| `ontologia.py` | Tripletas Sujeto→Predicado→Objeto en grafo NetworkX | **IA (representación del conocimiento)** |
-| `reglas.py` | Motor SI-ENTONCES: prioridad, criticidad, forzar categoría | **IA (sistema basado en reglas)** |
-| `agente.py` | Agente REAS/PAMA: orquesta todo, canaliza, notifica, escala a humano | Agente racional |
-| `main.py` / `pruebas.py` | Ejecución y plan de pruebas | - |
+# Creación de un servidor ligero para la conexión con la base de datos
+- Crea la base de datos en pgadmin con el nombre: SICOU_IA
+en .git ignore agregue el .env que es la conexión con la BDD, ahí debes cambiar tus datos:
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=SICOU_IA
+DB_USER=postgres
+DB_PASSWORD=joss18
+- Cree dos tablas: usuarios y facultades, el script esta en:
+Sistema_Solicitudes\database\schema.sql
+(solo debes abrir un Query tool -> pegar y ejecutar)
+- instalar en terminal (\Sistema_Solicitudes> pip install psycopg2-binary):
+        pip install psycopg2-binary
+- tambien se agrego nuevas herramientas a requirements.txt
 
-## Flujo
-texto libre → PLN → clasificador ML (categoría + confianza) → ontología (conceptos) → reglas (prioridad/criticidad)
-→ canal → ¿criticidad alta o confianza < 0.50? → supervisor humano : notificación automática.
+- Iniciar el proyecto completo con interfaz conectada:
+cd Sistema_Solicitudes
+python server.py    
 
-**Categoría** = tipo de solicitud (ML). **Canal** = departamento que la atiende (ontología).

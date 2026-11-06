@@ -1,0 +1,302 @@
+/* ==============================================================================
+   Estilo de Login y Registro - Sistema Universitario
+   Diseño inspirado en tonalidades Azul y Blanco con Glassmorphism y Ondas
+   ============================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 20% 20%, #1e3a8a 0%, #0f172a 100%),
+                linear-gradient(135deg, #1d4ed8 0%, #0c1a3b 60%, #020617 100%);
+    background-color: #0c1a3b;
+    position: relative;
+    overflow-x: hidden;
+    padding: 20px;
+}
+
+/* Efectos visuales de fondo (ondas y partículas) */
+.bg-waves {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.wave {
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    opacity: 0.15;
+    background: radial-gradient(ellipse at center, rgba(59, 130, 246, 0.4) 0%, rgba(30, 58, 138, 0) 70%);
+    border-radius: 40%;
+    animation: flotarOnda 22s infinite linear;
+}
+
+.wave:nth-child(1) {
+    top: -80%;
+    left: -40%;
+    animation-duration: 25s;
+}
+
+.wave:nth-child(2) {
+    bottom: -90%;
+    right: -40%;
+    opacity: 0.1;
+    animation-duration: 35s;
+    animation-direction: reverse;
+}
+
+@keyframes flotarOnda {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Tarjeta principal con efecto Glassmorphism */
+.login-card {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 440px;
+    background: rgba(15, 30, 68, 0.65);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 24px;
+    padding: 40px 35px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5),
+                0 0 40px rgba(37, 99, 235, 0.15);
+    color: #ffffff;
+    transition: all 0.3s ease;
+}
+
+/* Encabezado del Card */
+.card-header {
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.card-header h2 {
+    font-size: 28px;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.card-header p {
+    font-size: 13px;
+    color: #94a3b8;
+    font-weight: 400;
+}
+
+/* Grupos de Formulario e Inputs */
+.form-group {
+    margin-bottom: 18px;
+}
+
+.input-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-container .input-icon {
+    position: absolute;
+    left: 16px;
+    width: 18px;
+    height: 18px;
+    color: #93c5fd;
+    opacity: 0.85;
+    pointer-events: none;
+    transition: color 0.3s ease;
+}
+
+.input-container input,
+.input-container select {
+    width: 100%;
+    padding: 13px 16px 13px 44px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    font-size: 14px;
+    color: #ffffff;
+    outline: none;
+    transition: all 0.25s ease;
+}
+
+.input-container input::placeholder {
+    color: #94a3b8;
+    font-weight: 300;
+}
+
+.input-container input:focus,
+.input-container select:focus {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+
+/* Estilo para el Dropdown de Facultades */
+.input-container select {
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg2+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2393c5fd'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 16px;
+    padding-right: 40px;
+}
+
+.input-container select option {
+    background-color: #0f172a;
+    color: #ffffff;
+    padding: 10px;
+}
+
+/* Opciones extras (Remember me y Olvidaste contraseña) */
+.form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    margin-top: 5px;
+    margin-bottom: 22px;
+}
+
+.remember-me {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    color: #cbd5e1;
+    user-select: none;
+}
+
+.remember-me input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #3b82f6;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.forgot-password {
+    color: #94a3b8;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.forgot-password:hover {
+    color: #60a5fa;
+    text-decoration: underline;
+}
+
+/* Botón Principal */
+.btn-submit {
+    width: 100%;
+    padding: 13px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border: none;
+    border-radius: 12px;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+    text-transform: uppercase;
+}
+
+.btn-submit:hover {
+    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 22px rgba(59, 130, 246, 0.5);
+}
+
+.btn-submit:active {
+    transform: translateY(0);
+}
+
+/* Pie de tarjeta (Cambiar entre Login y Registro) */
+.card-footer {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 13px;
+    color: #94a3b8;
+}
+
+.card-footer a {
+    color: #60a5fa;
+    font-weight: 600;
+    text-decoration: none;
+    margin-left: 4px;
+    transition: all 0.2s ease;
+}
+
+.card-footer a:hover {
+    color: #ffffff;
+    text-decoration: underline;
+}
+
+/* Mensajes de feedback (Alerta o Éxito) */
+.alerta-msg {
+    display: none;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 18px;
+    text-align: center;
+}
+
+.alerta-msg.error {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+    display: block;
+}
+
+.alerta-msg.exito {
+    background: rgba(34, 197, 94, 0.2);
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    color: #86efac;
+    display: block;
+}
+
+/* Transición suave entre formularios */
+.formulario {
+    display: none;
+    animation: aparecer 0.35s ease forwards;
+}
+
+.formulario.activo {
+    display: block;
+}
+
+@keyframes aparecer {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

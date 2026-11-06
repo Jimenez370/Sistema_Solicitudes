@@ -8,8 +8,8 @@ from dataset import DATOS
 from sklearn.model_selection import cross_val_score, StratifiedKFold
 
 PRUEBAS = [
-    ("Necesito saber por qué no aparece mi calificación del semestre",
-     "Académica", "Baja", "Servicios Escolares", False),
+    ("Necesito sabker por qué no aparece mi calificación del semestre",
+     "Académkica", "Baja", "Servicios Escolares", False),
     ("Existe una falla de red que nos impide acceder a la plataforma universitaria",
      "Soporte Técnico", "Alta", "Soporte Técnico", False),
     ("Quiero solicitar informes sobre los requisitos para la beca de manutención",
