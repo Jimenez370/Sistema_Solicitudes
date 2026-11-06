@@ -83,8 +83,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 sessionStorage.setItem("sicou_usuario", JSON.stringify(datos.usuario));
 
                 mostrarMensaje(`¡Bienvenido/a, ${datos.usuario.nombre}! Redirigiendo...`, "exito");
-                setTimeout(() => {
-                    window.location.href = "areas.html";
+                setTimeout(()=>{
+                    const rol = datos.usuario.rol;
+                    console.log("Rol del usuario:", rol); 
+                    
+                    if (rol === "usuario" || rol === "alumno") {
+                        window.location.href = "dashboard_alumno.html";
+                    } else if (rol === "gerente_area" || rol === "administrador") {
+                        window.location.href = "areas.html";
+                    } else {
+                        window.location.href = "dashboard_alumno.html";
+                    }
                 }, 1200);
             } else {
                 mostrarMensaje(datos.mensaje || datos.error || "Credenciales incorrectas", "error");

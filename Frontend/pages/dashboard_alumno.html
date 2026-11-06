@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Universitario | Mi Panel</title>
+    <link rel="stylesheet" href="../css/estilo_areas.css">
+    <link rel="stylesheet" href="../css/estilo_alumno.css">
+</head>
+<body>
+    <!-- Encabezado (mismo estilo) -->
+    <header class="encabezado">
+        <div class="logo">
+            <h2>Sistema Universitario</h2>
+        </div>
+        <div class="usuario">
+            <span id="nombreUsuario">Alumno</span>
+            <span id="facultadUsuario" class="facultad-tag">Facultad</span>
+            <button id="btnCerrarSesion">Cerrar sesión</button>
+        </div>
+    </header>
+
+    <div class="contenedor">
+        <!-- Menú lateral -->
+        <aside class="sidebar">
+            <h3>MENÚ PRINCIPAL</h3>
+            <nav>
+                <a href="#" class="activo" data-seccion="inicio">Inicio</a>
+                <a href="#" data-seccion="nueva">Nueva solicitud</a>
+                <a href="#" data-seccion="solicitudes">Mis solicitudes</a>
+                <a href="#" data-seccion="notificaciones">Notificaciones <span class="badge-notif" id="contadorNotif">0</span></a>
+                <a href="#" data-seccion="perfil">Mi perfil</a>
+            </nav>
+        </aside>
+
+        <!-- Contenido principal -->
+        <main class="contenido">
+
+            <!-- SECCIÓN: INICIO -->
+            <section id="sec-inicio" class="seccion activa">
+                <section class="bienvenida">
+                    <h1>Mi Panel</h1>
+                    <p>Bienvenido al sistema de solicitudes universitarias.</p>
+                    <h3 id="areaAlumno">Área Académica</h3>
+                </section>
+
+                <section class="estadisticas">
+                    <div class="tarjeta tarjeta-pendiente">
+                        <h3>Pendientes</h3>
+                        <p id="statPendientes">0</p>
+                    </div>
+                    <div class="tarjeta tarjeta-revision">
+                        <h3>En revisión</h3>
+                        <p id="statRevision">0</p>
+                    </div>
+                    <div class="tarjeta tarjeta-resuelta">
+                        <h3>Resueltas</h3>
+                        <p id="statResueltas">0</p>
+                    </div>
+                    <div class="tarjeta">
+                        <h3>Total</h3>
+                        <p id="statTotal">0</p>
+                    </div>
+                </section>
+
+                <!-- Accesos rápidos -->
+                <section class="seccion-solicitudes">
+                    <div class="titulo-seccion">
+                        <h2>Accesos rápidos</h2>
+                    </div>
+                    <div class="accesos-rapidos">
+                        <button class="btn-acceso" onclick="cambiarSeccion('nueva')">
+                            <span>Nueva solicitud</span>
+                        </button>
+                        <button class="btn-acceso" onclick="cambiarSeccion('solicitudes')">
+                            <span>Ver mis solicitudes</span>
+                        </button>
+                        <button class="btn-acceso" onclick="cambiarSeccion('notificaciones')">
+                            <span>Notificaciones</span>
+                        </button>
+                    </div>
+                </section>
+            </section>
+
+            <!-- SECCIÓN: NUEVA SOLICITUD -->
+            <section id="sec-nueva" class="seccion">
+                <section class="bienvenida">
+                    <h1>Nueva Solicitud</h1>
+                    <p>Describe tu problema y nuestra IA lo clasificará y enviará automáticamente al departamento correspondiente.</p>
+                </section>
+
+                <section class="seccion-solicitudes formulario-solicitud">
+                    <form id="formNuevaSolicitud">
+                        <!-- DESCRIPCIÓN: único campo obligatorio -->
+                        <div class="grupo-campos">
+                            <label for="descripcion">Describe tu problema o solicitud *</label>
+                            <textarea id="descripcion" rows="8" 
+                                placeholder="Ej: No aparece mi calificación del semestre en el campus virtual, ya revisé en servicios escolares y me dicen que no hay registro..." 
+                                required></textarea>
+                            <small class="ayuda-ia">Escribe con el mayor detalle posible. La IA analizará tu texto para clasificar la categoría, prioridad y departamento destino.</small>
+                        </div>
+
+                        <!-- ARCHIVO ADJUNTO (opcional) -->
+                        <div class="grupo-campos">
+                            <label for="archivo">Archivo adjunto (opcional)</label>
+                            <input type="file" id="archivo" accept=".pdf,.jpg,.png,.doc,.docx">
+                        </div>
+
+                        <!-- RESULTADO DEL ANÁLISIS IA (aparece automáticamente al escribir) -->
+                        <div id="resultadoIA" class="resultado-ia" style="display:none;">
+                            <h3>🤖 Análisis automático de la IA</h3>
+                            <p class="resultado-ia-info">Tu solicitud será canalizada de la siguiente manera:</p>
+                            <div class="grid-resultado">
+                                <div class="resultado-item">
+                                    <span class="resultado-label">Categoría</span>
+                                    <span class="resultado-valor" id="iaCategoria">-</span>
+                                </div>
+                                <div class="resultado-item">
+                                    <span class="resultado-label">Prioridad</span>
+                                    <span class="resultado-valor" id="iaPrioridad">-</span>
+                                </div>
+                                <div class="resultado-item">
+                                    <span class="resultado-label">Departamento destino</span>
+                                    <span class="resultado-valor" id="iaCanal">-</span>
+                                </div>
+                                <div class="resultado-item">
+                                    <span class="resultado-label">Confianza del análisis</span>
+                                    <span class="resultado-valor" id="iaConfianza">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- BOTONES -->
+                        <div class="acciones-form">
+                            <button type="button" class="btn-secundario" onclick="cambiarSeccion('inicio')">Cancelar</button>
+                            <button type="submit" class="btn-primario" id="btnEnviar" disabled>Enviar solicitud</button>
+                        </div>
+                    </form>
+                </section>
+            </section>
+
+            <!-- SECCIÓN: MIS SOLICITUDES -->
+            <section id="sec-solicitudes" class="seccion">
+                <section class="bienvenida">
+                    <h1>Mis Solicitudes</h1>
+                    <p>Revisa el estado de todas tus solicitudes.</p>
+                </section>
+
+                <section class="seccion-solicitudes">
+                    <!-- Filtros -->
+                    <div class="filtros">
+                        <div class="grupo-filtro">
+                            <label>Estado:</label>
+                            <select id="filtroEstado">
+                                <option value="todos">Todos</option>
+                                <option value="Pendiente">Pendientes</option>
+                                <option value="En revisión">En revisión</option>
+                                <option value="Atendida">Atendidas</option>
+                            </select>
+                        </div>
+                        <div class="grupo-filtro">
+                            <label>Prioridad:</label>
+                            <select id="filtroPrioridad">
+                                <option value="todos">Todas</option>
+                                <option value="Alta">Alta</option>
+                                <option value="Media">Media</option>
+                                <option value="Baja">Baja</option>
+                            </select>
+                        </div>
+                        <button class="btn-primario btn-sm" onclick="aplicarFiltros()">Filtrar</button>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Folio</th>
+                                <th>Tipo</th>
+                                <th>Descripción</th>
+                                <th>Fecha</th>
+                                <th>Prioridad</th>
+                                <th>Estado</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaMisSolicitudes">
+                            <!-- Se llena dinámicamente -->
+                        </tbody>
+                    </table>
+                </section>
+            </section>
+
+            <!-- SECCIÓN: NOTIFICACIONES -->
+            <section id="sec-notificaciones" class="seccion">
+                <section class="bienvenida">
+                    <h1>Notificaciones</h1>
+                    <p>Actualizaciones sobre tus solicitudes.</p>
+                </section>
+
+                <section class="seccion-solicitudes">
+                    <div class="lista-notificaciones" id="listaNotificaciones">
+                        <!-- Se llena dinámicamente -->
+                    </div>
+                </section>
+            </section>
+
+            <!-- SECCIÓN: PERFIL -->
+            <section id="sec-perfil" class="seccion">
+                <section class="bienvenida">
+                    <h1>Mi Perfil</h1>
+                    <p>Información de tu cuenta.</p>
+                </section>
+
+                <section class="seccion-solicitudes perfil-card">
+                    <div class="perfil-info">
+                        <div class="avatar">👤</div>
+                        <div class="datos-perfil">
+                            <h3 id="perfilNombre">Nombre del alumno</h3>
+                            <p id="perfilCorreo">correo@universidad.edu</p>
+                            <p id="perfilFacultad">Facultad</p>
+                            <span class="badge-rol">Alumno</span>
+                        </div>
+                    </div>
+                    <div class="perfil-acciones">
+                        <button class="btn-secundario">Cambiar contraseña</button>
+                        <button class="btn-secundario">Editar datos</button>
+                    </div>
+                </section>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Modal de detalle de solicitud -->
+    <div id="modalDetalle" class="modal">
+        <div class="modal-contenido">
+            <div class="modal-header">
+                <h3>Detalle de solicitud <span id="modalFolio"></span></h3>
+                <button class="btn-cerrar" onclick="cerrarModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="detalle-grid">
+                    <div><strong>Tipo:</strong> <span id="modalTipo"></span></div>
+                    <div><strong>Prioridad:</strong> <span id="modalPrioridad"></span></div>
+                    <div><strong>Estado:</strong> <span id="modalEstado"></span></div>
+                    <div><strong>Departamento:</strong> <span id="modalDepto"></span></div>
+                </div>
+                <div class="detalle-descripcion">
+                    <h4>Descripción</h4>
+                    <p id="modalDescripcion"></p>
+                </div>
+                <div class="detalle-respuesta" id="seccionRespuesta" style="display:none;">
+                    <h4>Respuesta del área</h4>
+                    <div class="respuesta-box" id="modalRespuesta"></div>
+                </div>
+                <div class="chat-area" id="chatArea">
+                    <h4>Comentarios</h4>
+                    <div class="chat-mensajes" id="chatMensajes"></div>
+                    <div class="chat-input">
+                        <input type="text" id="inputComentario" placeholder="Escribe un comentario...">
+                        <button onclick="enviarComentario()">Enviar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/app.js"></script>
+    <script src="../js/dashboard_alumno.js"></script>
+</body>
+</html>
