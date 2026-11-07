@@ -7,6 +7,8 @@ import decimal
 import json
 import os
 import sys
+import secrets
+import threading
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
 
@@ -38,6 +40,12 @@ def serializador_json(obj):
         return obj.isoformat()
     return str(obj)
 
+#sesiones activas de los usuarios
+sesiones = {}
+
+#proteccion para el acceso a las sesiones
+#Cada sesión tendrá asociado un token y la información del usuario autenticado.
+sesiones_lock = threading.Lock()
 
 class CustomHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -61,6 +69,18 @@ class CustomHandler(SimpleHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.end_headers()
 
+    def _obtener_usuario_sesion(self):
+        """Obtiene la información del usuario autenticado a partir del token de sesión."""
+        encabezado = self.headers.get("Authorization", "")
+
+        if not encabezado.startswith("Bearer "):
+            return None
+
+        token = encabezado.replace("Bearer ", "", 1).strip()
+
+        with sesiones_lock:
+            return sesiones.get(token)
+
     def do_GET(self):
         url = urlparse(self.path)
         params = parse_qs(url.query)
@@ -82,30 +102,90 @@ class CustomHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 return self._responder_json(500, {"error": str(e)})
 
-        # Endpoint API: Consultar solicitudes
+        # Endpoint API: Consultar solicitudes dependiendo el rol del usuario
         if url.path == "/api/solicitudes":
+
             if not conexion:
-                return self._responder_json(500, {"error": "Módulo de base de datos no disponible"})
+                return self._responder_json(
+                    500,
+                    {"error": "Módulo de base de datos no disponible"}
+                )
 
-            usuario_id = params.get("usuario_id", [None])[0]
+            # 1. Identificar al usuario mediante su token
+            usuario = self._obtener_usuario_sesion()
+
+            if not usuario:
+                return self._responder_json(
+                    401,
+                    {"ok": False, "error": "Sesión no válida. Inicia sesión nuevamente."}
+                )
+
+            rol = usuario["rol"]
+            usuario_id = usuario["id"]
+            departamento_id = usuario.get("departamento_id")
+
+            # 2. Obtener el estado solicitado (si existe)
             estado = params.get("estado", [None])[0]
-            depto_id = params.get("departamento_id", [None])[0]
 
-            solicitudes = conexion.obtener_solicitudes(
-                usuario_id=int(usuario_id) if usuario_id else None,
-                departamento_id=int(depto_id) if depto_id else None,
-                estado=estado,
-            )
-            estadisticas = conexion.obtener_estadisticas_solicitudes(
-                usuario_id=int(usuario_id) if usuario_id else None
-            )
+            # 3. Determinar qué solicitudes puede consultar
+            if rol == "administrador":
 
+                # El administrador puede consultar todas
+                solicitudes = conexion.obtener_solicitudes(
+                    estado=estado
+                )
+
+                estadisticas = conexion.obtener_estadisticas_solicitudes()
+
+            elif rol == "gerente_area":
+
+                # El gerente solamente puede consultar su departamento
+                if departamento_id is None:
+                    return self._responder_json(
+                        403,
+                        {"ok": False, "error": "El gerente no tiene un departamento asignado."}
+                    )
+
+                solicitudes = conexion.obtener_solicitudes(
+                    departamento_id=int(departamento_id),
+                    estado=estado
+                )
+
+                estadisticas = conexion.obtener_estadisticas_solicitudes(
+                    departamento_id=int(departamento_id)
+                )
+
+            elif rol == "estudiante":
+
+                # El estudiante solamente consulta sus propias solicitudes
+                solicitudes = conexion.obtener_solicitudes(
+                    usuario_id=int(usuario_id),
+                    estado=estado
+                )
+
+                estadisticas = conexion.obtener_estadisticas_solicitudes(
+                    usuario_id=int(usuario_id)
+                )
+
+            else:
+                return self._responder_json(
+                    403,
+                    {"ok": False, "error": "No tienes permisos para consultar solicitudes."}
+                )
+
+            # 4. Enviar resultados al frontend
             return self._responder_json(
-                200, {"ok": True, "solicitudes": solicitudes, "estadisticas": estadisticas}
+                200,
+                {
+                    "ok": True,
+                    "solicitudes": solicitudes,
+                    "estadisticas": estadisticas
+                }
             )
 
-        # Servir archivos estáticos normalmente
+        # Si no es una ruta API, entregar el archivo estático
         return super().do_GET()
+
 
     def do_POST(self):
         url = urlparse(self.path)
@@ -146,11 +226,39 @@ class CustomHandler(SimpleHTTPRequestHandler):
                 return self._responder_json(400, {"error": "Correo, contraseña y facultad son requeridos"})
 
             ok, usuario, mensaje = conexion.autenticar_usuario(correo, contrasena, int(facultad_id))
-            if ok:
-                return self._responder_json(200, {"ok": True, "mensaje": mensaje, "usuario": usuario})
-            else:
-                return self._responder_json(401, {"ok": False, "mensaje": mensaje})
 
+            if ok:
+                #generar token de sesion
+                token = secrets.token_urlsafe(32)
+
+                #guardar la sesion
+                datos_sesion = {
+                    "id": usuario["id"],
+                    "nombre": usuario["nombre"],
+                    "correo": usuario["correo"],
+                    "rol": str(usuario["rol"]).lower(),
+                    "departamento_id": usuario.get("departamento_id")
+                }
+
+                with sesiones_lock:
+                    sesiones[token] = datos_sesion
+
+                return self._responder_json(
+                    200,
+                    {
+                        "ok": True,
+                        "mensaje": mensaje,
+                        "token": token,
+                        "usuario": usuario
+                    }
+                )
+            else:
+                return self._responder_json(
+                    401,
+                    {"ok": False, "mensaje": mensaje}
+                )
+
+            
         # Endpoint API: Análisis en tiempo real con IA (sin guardar en BD aún)
         if url.path == "/api/analizar":
             texto = datos.get("texto", "").strip()
@@ -179,30 +287,68 @@ class CustomHandler(SimpleHTTPRequestHandler):
                 return self._responder_json(500, {"error": f"Error en análisis IA: {str(e)}"})
 
         # Endpoint API: Crear solicitud, procesar con IA y guardar en PostgreSQL
+        
+        # Endpoint API: Crear solicitud, procesar con IA y guardar en PostgreSQL
         if url.path == "/api/solicitudes":
             if not conexion:
-                return self._responder_json(500, {"error": "Módulo de base de datos no disponible"})
+                return self._responder_json(
+                    500,
+                    {"ok": False, "error": "Módulo de base de datos no disponible"}
+                )
 
             if not agente_ia:
-                return self._responder_json(500, {"error": "Agente inteligente no disponible"})
+                return self._responder_json(
+                    500,
+                    {"ok": False, "error": "Agente inteligente no disponible"}
+                )
 
-            descripcion = datos.get("descripcion", "").strip()
-            usuario_id = datos.get("usuario_id")
+            # 1. Identificar al usuario mediante su token
+            usuario = self._obtener_usuario_sesion()
 
-            if not descripcion or not usuario_id:
-                return self._responder_json(400, {"error": "La descripción y el usuario son obligatorios"})
+            if not usuario:
+                return self._responder_json(
+                    401,
+                    {"ok": False, "error": "Sesión no válida. Inicia sesión nuevamente."}
+                )
+
+            # 2. Solo los estudiantes pueden enviar solicitudes
+            rol = usuario["rol"]
+
+            if rol not in ("estudiante", "usuario"):
+                return self._responder_json(
+                    403,
+                    {"ok": False, "error": "No tienes permisos para enviar solicitudes."}
+                )
+
+            # 3. Obtener los datos
+            descripcion = (datos.get("descripcion") or "").strip()
+
+            if not descripcion:
+                return self._responder_json(
+                    400,
+                    {"ok": False, "error": "La descripción de la solicitud es obligatoria."}
+                )
+
+            # El ID se obtiene de la sesión, nunca del navegador
+            usuario_id = usuario["id"]
 
             try:
-                # 1. Ejecutar el agente inteligente híbrido (ML + Reglas + Ontología)
+                # 4. Procesar la solicitud con el agente inteligente
                 resultado = agente_ia.procesar(descripcion)
 
-                # 2. Guardar el resultado en la tabla solicitudes de PostgreSQL
-                ok, mensaje, solicitud_id = conexion.guardar_solicitud(int(usuario_id), resultado)
+                # 5. Guardar en PostgreSQL
+                ok, mensaje, solicitud_id = conexion.guardar_solicitud(
+                    int(usuario_id),
+                    resultado
+                )
 
                 if not ok:
-                    return self._responder_json(500, {"error": mensaje})
+                    return self._responder_json(
+                        500,
+                        {"ok": False, "error": mensaje}
+                    )
 
-                # 3. Retornar confirmación y datos clasificados al frontend
+                # 6. Responder al frontend
                 return self._responder_json(
                     201,
                     {
@@ -219,8 +365,13 @@ class CustomHandler(SimpleHTTPRequestHandler):
                         },
                     },
                 )
+
             except Exception as e:
-                return self._responder_json(500, {"error": f"Error al procesar solicitud: {str(e)}"})
+                print(f"Error al procesar solicitud: {e}")
+                return self._responder_json(
+                    500,
+                    {"ok": False, "error": f"Error al procesar solicitud: {str(e)}"}
+                )
 
         # Endpoint API: Actualizar estado de solicitud (por el administrador)
         if url.path == "/api/solicitudes/estado":

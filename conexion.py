@@ -16,7 +16,7 @@ def _cargar_env() -> dict[str, str]:
         "DB_PORT": "5432",
         "DB_NAME": "SICOU_IA",
         "DB_USER": "postgres",
-        "DB_PASSWORD": "",
+        "DB_PASSWORD": "12345",
     }
     if os.path.exists(_ENV_PATH):
         with open(_ENV_PATH, "r", encoding="utf-8") as f:
@@ -149,11 +149,14 @@ def autenticar_usuario(
             u.correo, 
             u.contrasena, 
             u.facultad_id, 
+            u.departamento_id,
             COALESCE(r.nombre, u.rol, 'estudiante') AS rol,
-            COALESCE(f.nombre, 'Administración General') AS facultad_nombre
+            COALESCE(f.nombre, 'Administración General') AS facultad_nombre,
+            COALESCE(d.nombre, 'Sin departamento') AS departamento_nombre
         FROM usuarios u
         LEFT JOIN roles r ON u.rol_id = r.id
         LEFT JOIN facultades f ON u.facultad_id = f.id
+        LEFT JOIN departamentos d ON u.departamento_id = d.id
         WHERE LOWER(u.correo) = %s AND u.activo = TRUE;
     """
     try:
@@ -184,6 +187,16 @@ def autenticar_usuario(
                     return False, None, "Contraseña incorrecta."
 
                 rol = str(usuario.get("rol", "estudiante")).lower()
+
+                departamento_id = usuario.get("departamento_id")
+
+                # el gerente de departamento debe tener un departamento asignado
+                if rol == "gerente_area" and departamento_id is None:
+                    return (
+                        False,
+                        None,
+                        "El usuario tiene rol de gerente de área pero no tiene un departamento asignado.",
+                    )
 
                 # Si es administrador, tiene acceso directo sin restringir por facultad
                 if rol != "administrador":
@@ -339,7 +352,8 @@ def actualizar_estado_solicitud(solicitud_id: int, nuevo_estado: str) -> tuple[b
         return False, f"Error al actualizar estado: {str(e)}"
 
 
-def obtener_estadisticas_solicitudes(usuario_id: Optional[int] = None) -> dict[str, int]:
+def obtener_estadisticas_solicitudes(usuario_id: Optional[int] = None,
+                                    departamento_id: Optional[int] = None) -> dict[str, int]:
     """Obtiene los contadores de solicitudes para las tarjetas estadísticas."""
     query = """
         SELECT 
@@ -354,6 +368,10 @@ def obtener_estadisticas_solicitudes(usuario_id: Optional[int] = None) -> dict[s
     if usuario_id:
         query += " AND usuario_id = %s"
         params.append(int(usuario_id))
+
+    if departamento_id:
+        query += " AND departamento_id = %s"
+        params.append(int(departamento_id))
 
     try:
         with get_connection() as conn:

@@ -28,6 +28,7 @@ function inicializarNavegacion() {
     if (btnCerrar) {
         btnCerrar.addEventListener('click', () => {
             sessionStorage.removeItem('sicou_usuario');
+            sessionStorage.removeItem('sicou_token');
             window.location.href = 'login.html';
         });
     }
@@ -52,6 +53,10 @@ function obtenerUsuarioActual() {
     return JSON.parse(sessionStorage.getItem('sicou_usuario') || '{}');
 }
 
+function obtenerToken() {
+    return sessionStorage.getItem('sicou_token');
+}
+
 function cargarDatosUsuario() {
     const usuario = obtenerUsuarioActual();
     const spanNombre = document.getElementById('nombreUsuario');
@@ -74,13 +79,30 @@ function cargarDatosUsuario() {
 // ========== ESTADÍSTICAS ==========
 async function cargarEstadisticas() {
     const usuario = obtenerUsuarioActual();
-    if (!usuario.id) return;
+    const token = obtenerToken();
+
+    if (!usuario.id || !token) return;
 
     try {
-        const res = await fetch(`/api/solicitudes?usuario_id=${usuario.id}`);
+        const res = await fetch('/api/solicitudes', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (res.status === 401) {
+            alert('Tu sesión expiró. Inicia sesión nuevamente.');
+            sessionStorage.removeItem('sicou_token');
+            sessionStorage.removeItem('sicou_usuario');
+            window.location.href = 'login.html';
+            return;
+        }
+
         const data = await res.json();
+
         if (data.ok && data.estadisticas) {
             const stats = data.estadisticas;
+
             document.getElementById('statPendientes').textContent = stats.pendientes || 0;
             document.getElementById('statRevision').textContent = stats.revision || 0;
             document.getElementById('statResueltas').textContent = stats.resueltas || 0;
@@ -95,17 +117,38 @@ async function cargarEstadisticas() {
 async function cargarMisSolicitudes(filtros = {}) {
     const tbody = document.getElementById('tablaMisSolicitudes');
     if (!tbody) return;
+
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;">Cargando solicitudes...</td></tr>';
 
-    const usuario = obtenerUsuarioActual();
-    let url = `/api/solicitudes?usuario_id=${usuario.id || ''}`;
+    const token = obtenerToken();
+
+    if (!token) {
+        alert('Sesión no detectada. Inicia sesión nuevamente.');
+        window.location.href = 'login.html';
+        return;
+    }
+
+    let url = '/api/solicitudes';
 
     if (filtros.estado && filtros.estado !== 'todos') {
-        url += `&estado=${encodeURIComponent(filtros.estado)}`;
+        url += `?estado=${encodeURIComponent(filtros.estado)}`;
     }
 
     try {
-        const res = await fetch(url);
+        const res = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (res.status === 401) {
+            sessionStorage.removeItem('sicou_token');
+            sessionStorage.removeItem('sicou_usuario');
+            alert('Tu sesión expiró. Inicia sesión nuevamente.');
+            window.location.href = 'login.html';
+            return;
+        }
+
         const data = await res.json();
 
         if (data.ok && data.solicitudes) {
@@ -266,11 +309,15 @@ function inicializarFormulario() {
         btnEnviar.textContent = 'Canalizando solicitud...';
 
         try {
+            const token = obtenerToken();
+
             const respuesta = await fetch('/api/solicitudes', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
-                    usuario_id: usuario.id,
                     descripcion: texto
                 })
             });

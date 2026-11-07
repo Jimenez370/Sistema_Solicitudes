@@ -159,5 +159,116 @@ correo: adminsicou@unach.mx
 contraseña: administrador
 rol asignado: administrador (rol_id: 1)
 
+# Se agrego a base de datos un usuario para cada area 
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM roles WHERE nombre = 'gerente_area'
+    ) THEN
+        INSERT INTO roles (id, nombre, descripcion)
+        VALUES (
+            3,
+            'gerente_area',
+            'Acceso a las solicitudes de su departamento'
+        );
+    END IF;
+END $$;
+
+
+-- =====================================================
+-- 2. Crear los usuarios gerentes
+-- Facultad de Arquitectura: ID 1
+-- Contraseña común: Prueba2026*
+-- =====================================================
+
+DO $$
+DECLARE
+    id_rol_gerente INTEGER;
+    contrasena_hash TEXT :=
+    'b980c7026bb786851b28309bd36820fa29537a3e22cfb6fe4cd967a806f76b6f';
+BEGIN
+
+    SELECT id INTO id_rol_gerente
+    FROM roles
+    WHERE nombre = 'gerente_area';
+
+    -- Coordinación Académica
+    INSERT INTO usuarios (
+        nombre, correo, contrasena, facultad_id,
+        rol, activo, departamento_id, rol_id
+    )
+    VALUES (
+        'Gerente Coordinación Académica',
+        'gerente.academica@sicou.test',
+        contrasena_hash,
+        1,
+        'gerente_area',
+        TRUE,
+        1,
+        id_rol_gerente
+    );
+
+    -- Servicios Escolares
+    INSERT INTO usuarios (
+        nombre, correo, contrasena, facultad_id,
+        rol, activo, departamento_id, rol_id
+    )
+    VALUES (
+        'Gerente Servicios Escolares',
+        'gerente.escolares@sicou.test',
+        contrasena_hash,
+        1,
+        'gerente_area',
+        TRUE,
+        2,
+        id_rol_gerente
+    );
+
+    -- Soporte Técnico
+    INSERT INTO usuarios (
+        nombre, correo, contrasena, facultad_id,
+        rol, activo, departamento_id, rol_id
+    )
+    VALUES (
+        'Gerente Soporte Técnico',
+        'gerente.soporte@sicou.test',
+        contrasena_hash,
+        1,
+        'gerente_area',
+        TRUE,
+        3,
+        id_rol_gerente
+    );
+
+    -- Bienestar Universitario
+    INSERT INTO usuarios (
+        nombre, correo, contrasena, facultad_id,
+        rol, activo, departamento_id, rol_id
+    )
+    VALUES (
+        'Gerente Bienestar Universitario',
+        'gerente.bienestar@sicou.test',
+        contrasena_hash,
+        1,
+        'gerente_area',
+        TRUE,
+        4,
+        id_rol_gerente
+    );
+
+END $$;
+
+- datos para entrar a esos perfiles
+Departamento			    Correo
+Coordinación Académica		gerente.academica@sicou.test
+Servicios Escolares		    gerente.escolares@sicou.test
+Soporte Técnico			    gerente.soporte@sicou.test
+Bienestar Universitario		gerente.bienestar@sicou.test
+
+- Contraseña para los cuatro: 
+Prueba2026*
+
+
 
 

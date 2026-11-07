@@ -95,6 +95,7 @@ function inicializarBotonCerrarSesion() {
 
     btn.addEventListener("click", (e) => {
         e.preventDefault();
+        sessionStorage.removeItem("sicou_token");
         sessionStorage.removeItem("sicou_usuario");
         window.location.href = "login.html";
     });
@@ -107,14 +108,42 @@ async function cargarDatosDashboard() {
     const tbody = document.getElementById("tablaSolicitudesBody");
 
     try {
-        const respuesta = await fetch("/api/solicitudes");
+
+        //1. Recuperar el token de la sesion
+        const token = sessionStorage.getItem("sicou_token");
+
+        if (!token){
+            console.warn("No se encontró token de sesión.");
+            alert("Tu sesión ha expirado o no estás autenticado. Serás redirigido al login.");
+            return window.location.href = "login.html";
+        }
+
+        // 2. Consultar las solicitudes enviando eltoken
+        const respuesta = await fetch("/api/solicitudes", {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        // 3. Comprobar si la sesión es válida
+        if (respuesta.status === 401) {
+            sessionStorage.removeItem("sicou_token");
+            sessionStorage.removeItem("sicou_usuario");
+
+            alert("Tu sesión ha expirado. Inicia sesión nuevamente.");
+            window.location.href = "login.html";
+            return;
+        }
+
         const datos = await respuesta.json();
 
         if (datos.ok) {
             solicitudesGlobal = datos.solicitudes || [];
-
-            // 1. Actualizar tarjetas estadísticas
+        
+            // 4. Actualizar tarjetas estadísticas
             const stats = datos.estadisticas || {};
+
             const elTotal = document.getElementById("totalSolicitudes");
             const elPend = document.getElementById("solicitudesPendientes");
             const elRev = document.getElementById("solicitudesRevision");
@@ -125,18 +154,28 @@ async function cargarDatosDashboard() {
             if (elRev) elRev.textContent = stats.revision || 0;
             if (elRes) elRes.textContent = stats.resueltas || 0;
 
-            // 2. Renderizar la tabla en la bandeja de solicitudes
+            // 5. Renderizar la tabla de solicitudes
             aplicarFiltros();
 
-            // 3. Renderizar alertas de supervisor
+            // 6. Renderizar alertas de supervisor
             renderizarNotificaciones(solicitudesGlobal);
+
         } else {
             console.warn("Error en datos:", datos.error);
         }
+    
     } catch (error) {
         console.error("Error al consultar API:", error);
+
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:25px;color:#dc2626;">⚠️ Servidor no detectado o error de conexión. Verifica que 'python server.py' esté corriendo.</td></tr>`;
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align:center;padding:25px;color:#dc2626;">
+                        ⚠️ Servidor no detectado o error de conexión.
+                        Verifica que 'python server.py' esté corriendo.
+                    </td>
+                </tr>
+            `;
         }
     }
 }
@@ -313,9 +352,14 @@ function renderizarNotificaciones(solicitudes) {
  */
 async function cambiarEstadoDirecto(solicitudId, nuevoEstado) {
     try {
+        const token = sessionStorage.getItem("sicou_token");
+
         const respuesta = await fetch("/api/solicitudes/estado", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
             body: JSON.stringify({
                 solicitud_id: solicitudId,
                 estado: nuevoEstado

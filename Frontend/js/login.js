@@ -72,6 +72,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const datos = await respuesta.json();
 
+            console.log("Usuario recibido:", datos.usuario);
+            console.log("Rol recibido:", datos.usuario?.rol);
+
             if (respuesta.ok && datos.ok) {
                 if (rememberMe) {
                     localStorage.setItem("sicou_remember_email", correo);
@@ -79,18 +82,35 @@ document.addEventListener("DOMContentLoaded", () => {
                     localStorage.removeItem("sicou_remember_email");
                 }
 
-                // Guardar datos de sesión básica en sessionStorage
+                
+                // Guardar token y datos de sesión
+                sessionStorage.setItem("sicou_token", datos.token);
+
+                console.log("Token guardado:", sessionStorage.getItem("sicou_token"));
+                console.log("Rol guardado:", datos.usuario.rol);
+                
                 sessionStorage.setItem("sicou_usuario", JSON.stringify(datos.usuario));
 
                 mostrarMensaje(`¡Bienvenido/a, ${datos.usuario.nombre}! Redirigiendo...`, "exito");
+                
                 setTimeout(() => {
-                    const rol = (datos.usuario.rol || "").toLowerCase();
+                    const rol = (datos.usuario.rol || "")
+                        .toLowerCase()
+                        .normalize("NFD")
+                        .replace(/[\u0300-\u036f]/g, "")
+                        .trim()
+                        .replace(/\s+/g, "_");
+
                     console.log("Rol del usuario autenticado:", rol);
 
-                    if (rol === "administrador" || rol === "gerente_area" || rol === "admin") {
+                    if (
+                        rol === "administrador" ||
+                        rol === "admin" ||
+                        rol === "gerente_area" ||
+                        rol === "gerente_de_area"
+                    ) {
                         window.location.href = "areas.html";
                     } else {
-                        // Por defecto a interfaz del alumno / estudiante
                         window.location.href = "dashboard_alumno.html";
                     }
                 }, 1200);
