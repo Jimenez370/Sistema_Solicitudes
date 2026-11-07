@@ -83,15 +83,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 sessionStorage.setItem("sicou_usuario", JSON.stringify(datos.usuario));
 
                 mostrarMensaje(`¡Bienvenido/a, ${datos.usuario.nombre}! Redirigiendo...`, "exito");
-                setTimeout(()=>{
-                    const rol = datos.usuario.rol;
-                    console.log("Rol del usuario:", rol); 
-                    
-                    if (rol === "usuario" || rol === "alumno") {
-                        window.location.href = "dashboard_alumno.html";
-                    } else if (rol === "gerente_area" || rol === "administrador") {
+                setTimeout(() => {
+                    const rol = (datos.usuario.rol || "").toLowerCase();
+                    console.log("Rol del usuario autenticado:", rol);
+
+                    if (rol === "administrador" || rol === "gerente_area" || rol === "admin") {
                         window.location.href = "areas.html";
                     } else {
+                        // Por defecto a interfaz del alumno / estudiante
                         window.location.href = "dashboard_alumno.html";
                     }
                 }, 1200);
@@ -99,7 +98,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 mostrarMensaje(datos.mensaje || datos.error || "Credenciales incorrectas", "error");
             }
         } catch (error) {
-            // Si el servidor backend no está corriendo, dar aviso claro
             console.warn("API no disponible, modo sin conexión:", error);
             mostrarMensaje("Servidor backend no detectado. Para conectar a PostgreSQL ejecuta: python server.py", "error");
         }
@@ -128,7 +126,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const datos = await respuesta.json();
 
             if (respuesta.ok && datos.ok) {
-                mostrarMensaje("¡Usuario registrado con éxito en PostgreSQL! Ahora inicia sesión.", "exito");
+                mostrarMensaje("¡Usuario registrado con éxito! Ahora inicia sesión.", "exito");
                 formRegistro.reset();
 
                 setTimeout(() => {

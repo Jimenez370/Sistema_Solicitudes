@@ -122,4 +122,42 @@ ON solicitudes(estado);
 CREATE INDEX IF NOT EXISTS idx_solicitudes_fecha
 ON solicitudes(fecha_creacion);
 
+# Script para la creación de Administrador en la BDD
+- Se crea la tabla rol de admon. y usuario
+- ya redirige si es admon. a  la interaz indicada, si es usuario a la del alumno
+-- 1. Tabla de Roles
+CREATE TABLE IF NOT EXISTS roles (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL UNIQUE,
+    descripcion VARCHAR(150)
+);
+
+INSERT INTO roles (id, nombre, descripcion) VALUES
+    (1, 'administrador', 'Acceso al panel administrativo y de gerencia'),
+    (2, 'estudiante', 'Acceso al portal de solicitudes del alumno')
+ON CONFLICT (id) DO UPDATE SET nombre = EXCLUDED.nombre;
+
+-- 2. Clave foránea en la tabla Usuarios
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS rol_id INT REFERENCES roles(id) DEFAULT 2;
+
+-- 3. Registro del Primer Administrador Oficial
+INSERT INTO usuarios (nombre, correo, contrasena, facultad_id, rol_id, rol, activo)
+VALUES (
+    'administrador',
+    'adminsicou@unach.mx',
+    'b20b0f63ce2ed361e8845d6bf2e59811aaa06ec96bcdb92f9bc0c5a25e83c9a6', -- SHA-256 de 'administrador'
+    1,
+    1,
+    'administrador',
+    TRUE
+)
+ON CONFLICT (correo) DO UPDATE 
+SET rol_id = 1, rol = 'administrador', activo = TRUE;
+
+- Datos del admon. para probar:
+correo: adminsicou@unach.mx
+contraseña: administrador
+rol asignado: administrador (rol_id: 1)
+
+
 

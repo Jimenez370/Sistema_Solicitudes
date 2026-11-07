@@ -1,6 +1,7 @@
 """Módulo de conexión y operaciones con la base de datos PostgreSQL (SICOU_IA)."""
 
 import hashlib
+import json
 import os
 from typing import Any, Optional
 
@@ -15,7 +16,7 @@ def _cargar_env() -> dict[str, str]:
         "DB_PORT": "5432",
         "DB_NAME": "SICOU_IA",
         "DB_USER": "postgres",
-        "DB_PASSWORD": "12345",
+        "DB_PASSWORD": "",
     }
     if os.path.exists(_ENV_PATH):
         with open(_ENV_PATH, "r", encoding="utf-8") as f:
@@ -60,7 +61,7 @@ def hashear_password(password: str) -> str:
 
 
 def inicializar_tablas():
-    """Ejecuta el script SQL para crear las tablas y registrar las facultades en SICOU_IA."""
+    """Ejecuta el script SQL para crear las tablas, roles, facultades y el primer administrador."""
     ruta_schema = os.path.join(_DIR, "database", "schema.sql")
     if not os.path.exists(ruta_schema):
         raise FileNotFoundError(f"No se encontró el archivo de esquema: {ruta_schema}")
@@ -72,7 +73,7 @@ def inicializar_tablas():
         with conn.cursor() as cur:
             cur.execute(sql)
         conn.commit()
-    print("✅ Tablas inicializadas y catálogo de facultades insertado correctamente en SICOU_IA.")
+    print("✅ Tablas inicializadas, roles, facultades y primer administrador creados en SICOU_IA.")
 
 
 def obtener_facultades() -> list[dict[str, Any]]:
@@ -85,27 +86,47 @@ def obtener_facultades() -> list[dict[str, Any]]:
 
 
 def registrar_usuario(
-    nombre: str, correo: str, contrasena: str, facultad_id: int, rol: str = "usuario"
+    nombre: str, correo: str, contrasena: str, facultad_id: int, rol: str = "estudiante"
 ) -> tuple[bool, str]:
-    """Registra un nuevo usuario en la base de datos."""
+    """Registra un nuevo usuario en la base de datos con rol estudiante por defecto."""
+    rol_id = 1 if rol.lower() == "administrador" else 2
     query = """
-        INSERT INTO usuarios (nombre, correo, contrasena, facultad_id, rol)
-        VALUES (%s, %s, %s, %s, %s)
+        INSERT INTO usuarios (nombre, correo, contrasena, facultad_id, rol, rol_id)
+        VALUES (%s, %s, %s, %s, %s, %s)
         RETURNING id;
     """
     try:
         with get_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute(
-                    query,
-                    (
-                        nombre.strip(),
-                        correo.strip().lower(),
-                        hashear_password(contrasena),
-                        int(facultad_id),
-                        rol,
-                    ),
-                )
+                try:
+                    cur.execute(
+                        query,
+                        (
+                            nombre.strip(),
+                            correo.strip().lower(),
+                            hashear_password(contrasena),
+                            int(facultad_id) if facultad_id else None,
+                            rol,
+                            rol_id,
+                        ),
+                    )
+                except Exception:
+                    # Fallback si rol_id aún no existe
+                    conn.rollback()
+                    cur.execute(
+                        """
+                        INSERT INTO usuarios (nombre, correo, contrasena, facultad_id, rol)
+                        VALUES (%s, %s, %s, %s, %s)
+                        RETURNING id;
+                        """,
+                        (
+                            nombre.strip(),
+                            correo.strip().lower(),
+                            hashear_password(contrasena),
+                            int(facultad_id) if facultad_id else None,
+                            rol,
+                        ),
+                    )
                 conn.commit()
                 return True, "Usuario registrado exitosamente."
     except Exception as e:
@@ -120,18 +141,41 @@ def registrar_usuario(
 def autenticar_usuario(
     correo: str, contrasena: str, facultad_id: Optional[int] = None
 ) -> tuple[bool, Optional[dict[str, Any]], str]:
-    """Verifica las credenciales del usuario y su facultad."""
+    """Verifica credenciales del usuario, devolviendo su rol ('administrador' o 'estudiante')."""
     query = """
-        SELECT u.id, u.nombre, u.correo, u.contrasena, u.facultad_id, u.rol, f.nombre AS facultad_nombre
+        SELECT 
+            u.id, 
+            u.nombre, 
+            u.correo, 
+            u.contrasena, 
+            u.facultad_id, 
+            COALESCE(r.nombre, u.rol, 'estudiante') AS rol,
+            COALESCE(f.nombre, 'Administración General') AS facultad_nombre
         FROM usuarios u
-        JOIN facultades f ON u.facultad_id = f.id
+        LEFT JOIN roles r ON u.rol_id = r.id
+        LEFT JOIN facultades f ON u.facultad_id = f.id
         WHERE LOWER(u.correo) = %s AND u.activo = TRUE;
     """
     try:
         with get_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute(query, (correo.strip().lower(),))
-                usuario = cur.fetchone()
+                try:
+                    cur.execute(query, (correo.strip().lower(),))
+                    usuario = cur.fetchone()
+                except Exception:
+                    # Fallback si roles no está unido
+                    conn.rollback()
+                    cur.execute(
+                        """
+                        SELECT u.id, u.nombre, u.correo, u.contrasena, u.facultad_id, u.rol,
+                               COALESCE(f.nombre, 'General') AS facultad_nombre
+                        FROM usuarios u
+                        LEFT JOIN facultades f ON u.facultad_id = f.id
+                        WHERE LOWER(u.correo) = %s AND u.activo = TRUE;
+                        """,
+                        (correo.strip().lower(),),
+                    )
+                    usuario = cur.fetchone()
 
                 if not usuario:
                     return False, None, "El correo no está registrado o la cuenta está inactiva."
@@ -139,12 +183,16 @@ def autenticar_usuario(
                 if usuario["contrasena"] != hashear_password(contrasena):
                     return False, None, "Contraseña incorrecta."
 
-                if facultad_id and int(usuario["facultad_id"]) != int(facultad_id):
-                    return (
-                        False,
-                        None,
-                        f"El usuario no pertenece a la facultad seleccionada (adscrito a: {usuario['facultad_nombre']}).",
-                    )
+                rol = str(usuario.get("rol", "estudiante")).lower()
+
+                # Si es administrador, tiene acceso directo sin restringir por facultad
+                if rol != "administrador":
+                    if facultad_id and usuario.get("facultad_id") and int(facultad_id) > 0 and int(usuario["facultad_id"]) != int(facultad_id):
+                        return (
+                            False,
+                            None,
+                            f"El usuario no pertenece a la facultad seleccionada (adscrito a: {usuario['facultad_nombre']}).",
+                        )
 
                 usuario_limpio = dict(usuario)
                 usuario_limpio.pop("contrasena", None)
@@ -153,68 +201,25 @@ def autenticar_usuario(
         return False, None, f"Error de conexión: {str(e)}"
 
 
-if __name__ == "__main__":
-    print(f"Probando conexión a base de datos '{CONFIG_DB['DB_NAME']}' en {CONFIG_DB['DB_HOST']}...")
-    try:
-        inicializar_tablas()
-        facultades = obtener_facultades()
-        print(f"Facultades registradas ({len(facultades)}):")
-        for f in facultades:
-            print(f"  [{f['id']}] {f['nombre']}")
-    except Exception as e:
-        print(f"❌ Error al conectar o inicializar: {e}")
-
-
 def guardar_solicitud(usuario_id: int, resultado) -> tuple[bool, str]:
-    """
-    Guarda en PostgreSQL una solicitud procesada por el agente inteligente.
-    """
-
-    # Buscar el departamento correspondiente al canal del agente.
-    query_departamento = """
-        SELECT id
-        FROM departamentos
-        WHERE nombre = %s;
-    """
-
-    # Insertar la solicitud.
+    """Guarda en PostgreSQL una solicitud procesada por el agente inteligente."""
+    query_departamento = "SELECT id FROM departamentos WHERE nombre = %s;"
     query_solicitud = """
         INSERT INTO solicitudes (
-            usuario_id,
-            departamento_id,
-            descripcion,
-            categoria,
-            prioridad,
-            canal_destino,
-            confianza,
-            alerta_supervisor,
-            motivo_alerta,
-            palabras_clave,
-            reglas_activadas,
-            conceptos,
-            tripletas,
-            notificaciones
+            usuario_id, departamento_id, descripcion, categoria, prioridad,
+            canal_destino, confianza, alerta_supervisor, motivo_alerta,
+            palabras_clave, reglas_activadas, conceptos, tripletas, notificaciones
         )
-        VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s, %s,
-            %s, %s, %s, %s, %s
-        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id;
     """
-
     try:
-        import json
-
         departamento_id = None
-
-        # Las solicitudes que van al supervisor no se asignan
-        # directamente a un departamento.
         if not resultado.alerta_supervisor or resultado.motivo_alerta.startswith("Criticidad alta"):
             with get_connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute(query_departamento, (resultado.canal,))
                     departamento = cur.fetchone()
-
                     if departamento:
                         departamento_id = departamento["id"]
 
@@ -236,14 +241,24 @@ def guardar_solicitud(usuario_id: int, resultado) -> tuple[bool, str]:
                         json.dumps(resultado.reglas, ensure_ascii=False),
                         json.dumps(resultado.conceptos, ensure_ascii=False),
                         json.dumps(resultado.tripletas, ensure_ascii=False),
-                        json.dumps(resultado.notificaciones, ensure_ascii=False)
-                    )
+                        json.dumps(resultado.notificaciones, ensure_ascii=False),
+                    ),
                 )
-
                 solicitud_id = cur.fetchone()["id"]
                 conn.commit()
 
         return True, f"Solicitud registrada correctamente. ID: {solicitud_id}"
-
     except Exception as e:
         return False, f"Error al guardar la solicitud: {str(e)}"
+
+
+if __name__ == "__main__":
+    print(f"Probando conexión a base de datos '{CONFIG_DB['DB_NAME']}' en {CONFIG_DB['DB_HOST']}...")
+    try:
+        inicializar_tablas()
+        facultades = obtener_facultades()
+        print(f"Facultades registradas ({len(facultades)}):")
+        for f in facultades:
+            print(f"  [{f['id']}] {f['nombre']}")
+    except Exception as e:
+        print(f"❌ Error al conectar o inicializar: {e}")
