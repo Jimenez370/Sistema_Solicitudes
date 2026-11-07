@@ -252,3 +252,170 @@ td {
         padding: 15px;
     }
 }
+
+
+/* ==============================================================================
+   ESTILOS PARA MULTI-SECCIONES DEL PANEL DE ADMINISTRADOR (Inicio, Solicitudes, Notificaciones, Perfil)
+   ============================================================================== */
+
+.seccion {
+    display: none;
+}
+
+.seccion.activa {
+    display: block;
+    animation: aparecerSeccion 0.25s ease forwards;
+}
+
+@keyframes aparecerSeccion {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.badge-notif {
+    background: #e11d48;
+    color: white;
+    border-radius: 10px;
+    padding: 2px 7px;
+    font-size: 11px;
+    margin-left: 6px;
+    font-weight: bold;
+}
+
+/* Barra de Filtros y Búsqueda */
+.filtros-admin {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: center;
+    background: #ffffff;
+    padding: 16px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    margin-bottom: 20px;
+}
+
+.filtros-admin .grupo-filtro {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #1e293b;
+    font-weight: 500;
+}
+
+.filtros-admin select,
+.filtros-admin input {
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #334155;
+    outline: none;
+    background: #f8fafc;
+}
+
+.filtros-admin select:focus,
+.filtros-admin input:focus {
+    border-color: #2563eb;
+    background: #ffffff;
+}
+
+/* Tarjetas de Notificaciones y Alertas */
+.lista-notificaciones {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 15px;
+}
+
+.notif-card {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    border-left: 4px solid #ef4444;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+}
+
+.notif-card.alerta {
+    border-left-color: #dc2626;
+    background: #fffafa;
+}
+
+.notif-icono {
+    font-size: 24px;
+    line-height: 1;
+}
+
+.notif-cuerpo {
+    flex: 1;
+}
+
+.notif-cuerpo h4 {
+    font-size: 15px;
+    color: #1e293b;
+    margin-bottom: 4px;
+}
+
+.notif-cuerpo p {
+    font-size: 13px;
+    color: #64748b;
+    margin-bottom: 6px;
+}
+
+.notif-meta {
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+/* Tarjeta de Perfil */
+.tarjeta-perfil {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 30px;
+    max-width: 600px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.perfil-avatar {
+    width: 65px;
+    height: 65px;
+    background: #15345b;
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.perfil-grid {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 14px 20px;
+    font-size: 14px;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 20px;
+    margin-top: 15px;
+}
+
+.perfil-grid .label {
+    font-weight: 600;
+    color: #64748b;
+}
+
+.perfil-grid .valor {
+    color: #1e293b;
+    font-weight: 500;
+}

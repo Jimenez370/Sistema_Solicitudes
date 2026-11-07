@@ -1,6 +1,8 @@
-//==============================================================================
-// Lógica del Dashboard de Alumno
-//==============================================================================
+// ==============================================================================
+// Lógica del Dashboard de Alumno - Conectado con Agente IA y PostgreSQL
+// ==============================================================================
+
+let listaSolicitudesMemoria = [];
 
 document.addEventListener("DOMContentLoaded", () => {
     cargarDatosUsuario();
@@ -17,93 +19,147 @@ function inicializarNavegacion() {
         link.addEventListener('click', (e) => {
             e.preventDefault();
             const seccion = link.getAttribute('data-seccion');
-            cambiarSeccion(seccion);
+            if (seccion) cambiarSeccion(seccion);
         });
     });
 
     // Cerrar sesión
-    document.getElementById('btnCerrarSesion').addEventListener('click', () => {
-        sessionStorage.removeItem('sicou_usuario');
-        window.location.href = 'login.html';
-    });
+    const btnCerrar = document.getElementById('btnCerrarSesion');
+    if (btnCerrar) {
+        btnCerrar.addEventListener('click', () => {
+            sessionStorage.removeItem('sicou_usuario');
+            window.location.href = 'login.html';
+        });
+    }
 }
 
 function cambiarSeccion(seccion) {
-    // Actualizar sidebar
     document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('activo'));
     const linkActivo = document.querySelector(`.sidebar nav a[data-seccion="${seccion}"]`);
     if (linkActivo) linkActivo.classList.add('activo');
 
-    // Mostrar sección
     document.querySelectorAll('.seccion').forEach(s => s.classList.remove('activa'));
-    document.getElementById(`sec-${seccion}`).classList.add('activa');
+    const secTarget = document.getElementById(`sec-${seccion}`);
+    if (secTarget) secTarget.classList.add('activa');
+
+    if (seccion === 'solicitudes') {
+        cargarMisSolicitudes();
+    }
 }
 
 // ========== DATOS DE USUARIO ==========
-function cargarDatosUsuario() {
-    const usuario = JSON.parse(sessionStorage.getItem('sicou_usuario') || '{}');
-    document.getElementById('nombreUsuario').textContent = usuario.nombre || 'Alumno';
-    document.getElementById('facultadUsuario').textContent = usuario.facultad_nombre || 'Facultad';
-    document.getElementById('areaAlumno').textContent = usuario.facultad_nombre || 'Área Académica';
+function obtenerUsuarioActual() {
+    return JSON.parse(sessionStorage.getItem('sicou_usuario') || '{}');
+}
 
-    // Perfil
-    document.getElementById('perfilNombre').textContent = usuario.nombre || '-';
-    document.getElementById('perfilCorreo').textContent = usuario.correo || '-';
-    document.getElementById('perfilFacultad').textContent = usuario.facultad_nombre || '-';
+function cargarDatosUsuario() {
+    const usuario = obtenerUsuarioActual();
+    const spanNombre = document.getElementById('nombreUsuario');
+    const spanFacultad = document.getElementById('facultadUsuario');
+    const areaAlumno = document.getElementById('areaAlumno');
+
+    if (spanNombre) spanNombre.textContent = usuario.nombre || 'Alumno';
+    if (spanFacultad) spanFacultad.textContent = usuario.facultad_nombre || 'Facultad';
+    if (areaAlumno) areaAlumno.textContent = usuario.facultad_nombre || 'Área Académica';
+
+    const pNombre = document.getElementById('perfilNombre');
+    const pCorreo = document.getElementById('perfilCorreo');
+    const pFacultad = document.getElementById('perfilFacultad');
+
+    if (pNombre) pNombre.textContent = usuario.nombre || '-';
+    if (pCorreo) pCorreo.textContent = usuario.correo || '-';
+    if (pFacultad) pFacultad.textContent = usuario.facultad_nombre || '-';
 }
 
 // ========== ESTADÍSTICAS ==========
-function cargarEstadisticas() {
-    // Datos de ejemplo (reemplazar con fetch a API)
-    const stats = { pendientes: 3, revision: 2, resueltas: 8, total: 13 };
-    document.getElementById('statPendientes').textContent = stats.pendientes;
-    document.getElementById('statRevision').textContent = stats.revision;
-    document.getElementById('statResueltas').textContent = stats.resueltas;
-    document.getElementById('statTotal').textContent = stats.total;
+async function cargarEstadisticas() {
+    const usuario = obtenerUsuarioActual();
+    if (!usuario.id) return;
+
+    try {
+        const res = await fetch(`/api/solicitudes?usuario_id=${usuario.id}`);
+        const data = await res.json();
+        if (data.ok && data.estadisticas) {
+            const stats = data.estadisticas;
+            document.getElementById('statPendientes').textContent = stats.pendientes || 0;
+            document.getElementById('statRevision').textContent = stats.revision || 0;
+            document.getElementById('statResueltas').textContent = stats.resueltas || 0;
+            document.getElementById('statTotal').textContent = stats.total || 0;
+        }
+    } catch (e) {
+        console.warn("No se pudieron cargar estadísticas en vivo:", e);
+    }
 }
 
 // ========== SOLICITUDES ==========
-const solicitudesEjemplo = [
-    { folio: 'SOL-001', tipo: 'Académica', descripcion: 'No aparece mi calificación', fecha: '2026-11-05', prioridad: 'Baja', estado: 'Pendiente', depto: 'Servicios Escolares' },
-    { folio: 'SOL-002', tipo: 'Soporte Técnico', descripcion: 'No puedo entrar al campus virtual', fecha: '2026-11-04', prioridad: 'Alta', estado: 'En revisión', depto: 'Soporte Técnico' },
-    { folio: 'SOL-003', tipo: 'Financiera/Becas', descripcion: 'Informes sobre beca de manutención', fecha: '2026-11-02', prioridad: 'Media', estado: 'Atendida', depto: 'Caja y Finanzas', respuesta: 'Tu beca fue aprobada. Revisa tu correo.' },
-];
-
-function cargarMisSolicitudes(filtros = {}) {
+async function cargarMisSolicitudes(filtros = {}) {
     const tbody = document.getElementById('tablaMisSolicitudes');
-    tbody.innerHTML = '';
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;">Cargando solicitudes...</td></tr>';
 
-    let datos = [...solicitudesEjemplo];
+    const usuario = obtenerUsuarioActual();
+    let url = `/api/solicitudes?usuario_id=${usuario.id || ''}`;
 
     if (filtros.estado && filtros.estado !== 'todos') {
-        datos = datos.filter(s => s.estado === filtros.estado);
+        url += `&estado=${encodeURIComponent(filtros.estado)}`;
     }
+
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.ok && data.solicitudes) {
+            listaSolicitudesMemoria = data.solicitudes;
+            renderizarTablaSolicitudes(listaSolicitudesMemoria, filtros);
+        } else {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#6b7888;padding:30px;">No tienes solicitudes registradas aún.</td></tr>';
+        }
+    } catch (e) {
+        console.warn("Modo local o sin conexión:", e);
+        renderizarTablaSolicitudes(listaSolicitudesMemoria, filtros);
+    }
+}
+
+function renderizarTablaSolicitudes(solicitudes, filtros = {}) {
+    const tbody = document.getElementById('tablaMisSolicitudes');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    let datos = [...solicitudes];
     if (filtros.prioridad && filtros.prioridad !== 'todos') {
         datos = datos.filter(s => s.prioridad === filtros.prioridad);
     }
 
+    if (datos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#6b7888;padding:30px;">No hay solicitudes registradas con estos filtros.</td></tr>';
+        return;
+    }
+
     datos.forEach(s => {
         const tr = document.createElement('tr');
+        const prioClase = (s.prioridad || 'media').toLowerCase();
         tr.innerHTML = `
             <td><strong>${s.folio}</strong></td>
-            <td>${s.tipo}</td>
+            <td>${s.categoria || 'General'}</td>
             <td>${s.descripcion}</td>
-            <td>${s.fecha}</td>
-            <td><span class="badge badge-${s.prioridad.toLowerCase()}">${s.prioridad}</span></td>
-            <td><span class="badge ${getClaseEstado(s.estado)}">${s.estado}</span></td>
+            <td>${s.fecha || '-'}</td>
+            <td><span class="badge badge-${prioClase}">${s.prioridad || 'Media'}</span></td>
+            <td><span class="badge ${getClaseEstado(s.estado)}">${s.estado || 'Pendiente'}</span></td>
             <td><button class="btn-ver" onclick="verDetalle('${s.folio}')">Ver</button></td>
         `;
         tbody.appendChild(tr);
     });
-
-    if (datos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#6b7888;padding:30px;">No hay solicitudes con estos filtros.</td></tr>';
-    }
 }
 
 function getClaseEstado(estado) {
-    const clases = { 'Pendiente': 'badge-pendiente', 'En revisión': 'badge-revision', 'Atendida': 'badge-atendida' };
-    return clases[estado] || '';
+    const clases = {
+        'Pendiente': 'badge-pendiente',
+        'En revisión': 'badge-revision',
+        'En revision': 'badge-revision',
+        'Atendida': 'badge-atendida',
+        'Resuelta': 'badge-atendida'
+    };
+    return clases[estado] || 'badge-pendiente';
 }
 
 function aplicarFiltros() {
@@ -114,20 +170,20 @@ function aplicarFiltros() {
 
 // ========== DETALLE / MODAL ==========
 function verDetalle(folio) {
-    const s = solicitudesEjemplo.find(x => x.folio === folio);
+    const s = listaSolicitudesMemoria.find(x => x.folio === folio);
     if (!s) return;
 
     document.getElementById('modalFolio').textContent = s.folio;
-    document.getElementById('modalTipo').textContent = s.tipo;
-    document.getElementById('modalPrioridad').textContent = s.prioridad;
-    document.getElementById('modalEstado').textContent = s.estado;
-    document.getElementById('modalDepto').textContent = s.depto;
+    document.getElementById('modalTipo').textContent = s.categoria || 'General';
+    document.getElementById('modalPrioridad').textContent = s.prioridad || 'Media';
+    document.getElementById('modalEstado').textContent = s.estado || 'Pendiente';
+    document.getElementById('modalDepto').textContent = s.depto_nombre || s.canal_destino || 'Servicios Escolares';
     document.getElementById('modalDescripcion').textContent = s.descripcion;
 
     const seccionResp = document.getElementById('seccionRespuesta');
-    if (s.respuesta) {
+    if (s.motivo_alerta && s.alerta_supervisor) {
         seccionResp.style.display = 'block';
-        document.getElementById('modalRespuesta').textContent = s.respuesta;
+        document.getElementById('modalRespuesta').textContent = `Alerta al supervisor: ${s.motivo_alerta}`;
     } else {
         seccionResp.style.display = 'none';
     }
@@ -141,32 +197,20 @@ function cerrarModal() {
 
 // ========== NOTIFICACIONES ==========
 function cargarNotificaciones() {
-    const notifs = [
-        { icono: '✅', titulo: 'Solicitud SOL-003 atendida', msg: 'Tu solicitud de beca fue resuelta.', fecha: 'Hace 2 horas', leida: false },
-        { icono: '🔍', titulo: 'Solicitud SOL-002 en revisión', msg: 'El área de Soporte Técnico está revisando tu caso.', fecha: 'Hace 1 día', leida: true },
-        { icono: '📩', titulo: 'Nueva solicitud registrada', msg: 'SOL-001 fue enviada correctamente.', fecha: 'Hace 3 días', leida: true },
-    ];
-
     const cont = document.getElementById('listaNotificaciones');
-    cont.innerHTML = '';
-    let noLeidas = 0;
-
-    notifs.forEach(n => {
-        if (!n.leida) noLeidas++;
-        const div = document.createElement('div');
-        div.className = `notif-item ${n.leida ? '' : 'no-leida'}`;
-        div.innerHTML = `
-            <div class="notif-icono">${n.icono}</div>
+    if (!cont) return;
+    cont.innerHTML = `
+        <div class="notif-item">
+            <div class="notif-icono">🤖</div>
             <div class="notif-contenido">
-                <strong>${n.titulo}</strong>
-                <p>${n.msg}</p>
+                <strong>Agente Inteligente Activo</strong>
+                <p>Tus solicitudes son analizadas y canalizadas automáticamente según su prioridad y categoría.</p>
             </div>
-            <div class="notif-fecha">${n.fecha}</div>
-        `;
-        cont.appendChild(div);
-    });
-
-    document.getElementById('contadorNotif').textContent = noLeidas;
+            <div class="notif-fecha">Ahora</div>
+        </div>
+    `;
+    const contador = document.getElementById('contadorNotif');
+    if (contador) contador.textContent = "1";
 }
 
 // ========== FORMULARIO NUEVA SOLICITUD ==========
@@ -175,96 +219,160 @@ function inicializarFormulario() {
     const descripcion = document.getElementById('descripcion');
     const btnEnviar = document.getElementById('btnEnviar');
     let analisisTimeout;
-    let iaAnalisis = null; // Guarda el último análisis de la IA
+    let iaAnalisis = null;
 
-    // Analizar con IA mientras el alumno escribe (con debounce de 1.5s)
+    if (!form || !descripcion || !btnEnviar) return;
+
+    // Análisis en tiempo real con el Agente de IA mientras escribe (debounce 1.2s)
     descripcion.addEventListener('input', () => {
         clearTimeout(analisisTimeout);
-        
         const texto = descripcion.value.trim();
-        
-        // Si borra el texto, ocultar resultado y deshabilitar botón
-        if (texto.length < 20) {
+
+        if (texto.length < 15) {
             document.getElementById('resultadoIA').style.display = 'none';
             btnEnviar.disabled = true;
             iaAnalisis = null;
             return;
         }
 
-        // Mostrar indicador de "analizando..."
         btnEnviar.disabled = true;
-        btnEnviar.textContent = 'Analizando...';
+        btnEnviar.textContent = 'Analizando con IA...';
 
-        // Esperar 1.5 segundos después de que deje de escribir
-        analisisTimeout = setTimeout(() => {
-            iaAnalisis = analizarConIA(texto);
+        analisisTimeout = setTimeout(async () => {
+            iaAnalisis = await analizarConIA(texto);
             btnEnviar.disabled = false;
             btnEnviar.textContent = 'Enviar solicitud';
-        }, 1500);
+        }, 1200);
     });
 
-    form.addEventListener('submit', (e) => {
+    // Envío oficial de la solicitud a PostgreSQL
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
-        if (!iaAnalisis) {
-            alert('⚠️ La IA aún no ha analizado tu solicitud. Espera un momento.');
+        const texto = descripcion.value.trim();
+
+        if (!texto) {
+            alert('Por favor describe tu problema o solicitud.');
             return;
         }
 
-        const datos = {
-            descripcion: descripcion.value,
-            categoria: iaAnalisis.categoria,
-            prioridad: iaAnalisis.prioridad,
-            canal: iaAnalisis.canal,
-            confianza: iaAnalisis.confianza,
-        };
-        
-        console.log('📤 Enviando solicitud:', datos);
-        
-        // Simulación de envío exitoso
-        alert(`✅ Solicitud enviada correctamente.\n\n📂 Categoría: ${datos.categoria}\n⚡ Prioridad: ${datos.prioridad}\n🏢 Departamento: ${datos.canal}\n\nRecibirás notificaciones sobre el avance.`);
-        
-        // Limpiar formulario
-        form.reset();
-        document.getElementById('resultadoIA').style.display = 'none';
+        const usuario = obtenerUsuarioActual();
+        if (!usuario.id) {
+            alert('Sesión no detectada. Por favor vuelve a iniciar sesión.');
+            window.location.href = 'login.html';
+            return;
+        }
+
         btnEnviar.disabled = true;
-        iaAnalisis = null;
-        
-        // Ir a la sección de solicitudes
-        cambiarSeccion('solicitudes');
+        btnEnviar.textContent = 'Canalizando solicitud...';
+
+        try {
+            const respuesta = await fetch('/api/solicitudes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    usuario_id: usuario.id,
+                    descripcion: texto
+                })
+            });
+
+            const data = await respuesta.json();
+
+            if (respuesta.ok && data.ok) {
+                const a = data.analisis;
+                alert(`✅ ¡Solicitud enviada y clasificada con éxito!\n\n` +
+                      `📌 Folio: SOL-${String(data.solicitud_id).padStart(3, '0')}\n` +
+                      `📂 Categoría: ${a.categoria}\n` +
+                      `⚡ Prioridad asignada: ${a.prioridad}\n` +
+                      `🏢 Departamento destino: ${a.canal}\n` +
+                      `🎯 Confianza IA: ${(a.confianza * 100).toFixed(0)}%\n\n` +
+                      `La solicitud ya se encuentra disponible para el departamento correspondiente y el administrador.`);
+
+                form.reset();
+                document.getElementById('resultadoIA').style.display = 'none';
+                btnEnviar.disabled = true;
+                iaAnalisis = null;
+
+                // Actualizar estadísticas y tabla
+                cargarEstadisticas();
+                cargarMisSolicitudes();
+                cambiarSeccion('solicitudes');
+            } else {
+                alert('❌ Error al registrar solicitud: ' + (data.error || 'Intenta de nuevo.'));
+            }
+        } catch (error) {
+            console.error('Error al enviar solicitud:', error);
+            alert('⚠️ No se pudo comunicar con el servidor backend. Verifica que esté corriendo: python server.py');
+        } finally {
+            btnEnviar.disabled = false;
+            btnEnviar.textContent = 'Enviar solicitud';
+        }
     });
 }
 
-function analizarConIA(texto) {
-    // Simulación de la respuesta del agente.py
-    // En producción, esto vendría de: fetch('/api/analizar', { method: 'POST', body: JSON.stringify({ texto }) })
-    
-    const resultado = simularAnalisisIA(texto);
+/**
+ * Consulta al endpoint /api/analizar que ejecuta el Agente IA de Python
+ */
+async function analizarConIA(texto) {
+    try {
+        const respuesta = await fetch('/api/analizar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ texto })
+        });
 
-    // Mostrar panel de análisis
-    document.getElementById('iaCategoria').textContent = resultado.categoria;
-    document.getElementById('iaPrioridad').textContent = resultado.prioridad;
-    document.getElementById('iaCanal').textContent = resultado.canal;
-    document.getElementById('iaConfianza').textContent = (resultado.confianza * 100).toFixed(0) + '%';
+        const data = await respuesta.json();
+        if (respuesta.ok && data.ok) {
+            mostrarResultadoIA(data);
+            return data;
+        }
+    } catch (e) {
+        console.warn("Fallo análisis remoto, usando estimación local:", e);
+    }
+
+    // Fallback si el servidor está desconectado
+    const local = estimacionLocalIA(texto);
+    mostrarResultadoIA(local);
+    return local;
+}
+
+function mostrarResultadoIA(res) {
+    document.getElementById('iaCategoria').textContent = res.categoria || 'General';
+    document.getElementById('iaPrioridad').textContent = res.prioridad || 'Media';
+    document.getElementById('iaCanal').textContent = res.canal || 'Servicios Escolares';
+    document.getElementById('iaConfianza').textContent = ((res.confianza || 0.8) * 100).toFixed(0) + '%';
     document.getElementById('resultadoIA').style.display = 'block';
 
-    // Colorear según prioridad
     const elemPrioridad = document.getElementById('iaPrioridad');
     elemPrioridad.className = 'resultado-valor';
-    if (resultado.prioridad === 'Alta') {
+    if (res.prioridad === 'Alta') {
         elemPrioridad.style.color = '#dc2626';
-    } else if (resultado.prioridad === 'Media') {
+    } else if (res.prioridad === 'Media') {
         elemPrioridad.style.color = '#d97706';
     } else {
         elemPrioridad.style.color = '#15345b';
     }
-
-    return resultado;
 }
-// ========== COMENTARIOS ==========
+
+function estimacionLocalIA(texto) {
+    const t = texto.toLowerCase();
+    if (t.includes('calificacion') || t.includes('nota') || t.includes('examen')) {
+        return { categoria: 'Académica', prioridad: 'Baja', canal: 'Servicios Escolares', confianza: 0.82 };
+    }
+    if (t.includes('red') || t.includes('plataforma') || t.includes('contraseña') || t.includes('sistema')) {
+        return { categoria: 'Soporte Técnico', prioridad: 'Alta', canal: 'Soporte Técnico', confianza: 0.89 };
+    }
+    if (t.includes('beca') || t.includes('pago') || t.includes('colegiatura')) {
+        return { categoria: 'Financiera/Becas', prioridad: 'Media', canal: 'Caja y Finanzas', confianza: 0.85 };
+    }
+    if (t.includes('acoso') || t.includes('amenaza') || t.includes('urgente') || t.includes('violencia')) {
+        return { categoria: 'Bienestar Universitario', prioridad: 'Alta', canal: 'Bienestar Universitario', confianza: 0.95 };
+    }
+    return { categoria: 'Servicios Escolares', prioridad: 'Media', canal: 'Servicios Escolares', confianza: 0.75 };
+}
+
 function enviarComentario() {
     const input = document.getElementById('inputComentario');
-    const texto = input.value.trim();
+    const texto = input ? input.value.trim() : '';
     if (!texto) return;
 
     const chat = document.getElementById('chatMensajes');
@@ -274,30 +382,4 @@ function enviarComentario() {
     chat.appendChild(msg);
     input.value = '';
     chat.scrollTop = chat.scrollHeight;
-}
-
-// Simulación inteligente basada en palabras clave
-// (En producción esto se reemplaza por la llamada real a tu agente.py)
-function simularAnalisisIA(texto) {
-    const t = texto.toLowerCase();
-    
-    // Lógica de clasificación (reemplazar por fetch a /api/analizar)
-    if (t.includes('calificación') || t.includes('calificacion') || t.includes('nota') || t.includes('examen') || t.includes('reprobé') || t.includes('reprobe')) {
-        return { categoria: 'Académica', prioridad: 'Baja', canal: 'Servicios Escolares', confianza: 0.85 };
-    }
-    if (t.includes('no puedo entrar') || t.includes('contraseña') || t.includes('password') || t.includes('campus virtual') || t.includes('plataforma') || t.includes('correo institucional')) {
-        return { categoria: 'Soporte Técnico', prioridad: 'Alta', canal: 'Soporte Técnico', confianza: 0.92 };
-    }
-    if (t.includes('beca') || t.includes('pago') || t.includes('colegiatura') || t.includes('dinero') || t.includes('financiero')) {
-        return { categoria: 'Financiera/Becas', prioridad: 'Media', canal: 'Caja y Finanzas', confianza: 0.88 };
-    }
-    if (t.includes('constancia') || t.includes('trámite') || t.includes('tramite') || t.includes('documento') || t.includes('certificado')) {
-        return { categoria: 'Servicios Escolares', prioridad: 'Media', canal: 'Servicios Escolares', confianza: 0.90 };
-    }
-    if (t.includes('acoso') || t.includes('amenaza') || t.includes('emergencia') || t.includes('urgente') || t.includes('violencia')) {
-        return { categoria: 'Bienestar Universitario', prioridad: 'Alta', canal: 'Bienestar Universitario', confianza: 0.95 };
-    }
-    
-    // Por defecto
-    return { categoria: 'Otro', prioridad: 'Media', canal: 'Bandeja de Supervisor', confianza: 0.50 };
 }

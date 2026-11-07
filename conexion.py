@@ -201,9 +201,9 @@ def autenticar_usuario(
         return False, None, f"Error de conexión: {str(e)}"
 
 
-def guardar_solicitud(usuario_id: int, resultado) -> tuple[bool, str]:
+def guardar_solicitud(usuario_id: int, resultado) -> tuple[bool, str, Optional[int]]:
     """Guarda en PostgreSQL una solicitud procesada por el agente inteligente."""
-    query_departamento = "SELECT id FROM departamentos WHERE nombre = %s;"
+    query_departamento = "SELECT id FROM departamentos WHERE LOWER(nombre) = LOWER(%s) LIMIT 1;"
     query_solicitud = """
         INSERT INTO solicitudes (
             usuario_id, departamento_id, descripcion, categoria, prioridad,
@@ -215,16 +215,25 @@ def guardar_solicitud(usuario_id: int, resultado) -> tuple[bool, str]:
     """
     try:
         departamento_id = None
-        if not resultado.alerta_supervisor or resultado.motivo_alerta.startswith("Criticidad alta"):
-            with get_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute(query_departamento, (resultado.canal,))
-                    departamento = cur.fetchone()
-                    if departamento:
-                        departamento_id = departamento["id"]
+        canal_nombre = getattr(resultado, "canal", "Servicios Escolares")
 
         with get_connection() as conn:
             with conn.cursor() as cur:
+                # 1. Obtener o crear departamento correspondiente
+                cur.execute(query_departamento, (canal_nombre,))
+                dept = cur.fetchone()
+                if dept:
+                    departamento_id = dept["id"]
+                else:
+                    cur.execute(
+                        "INSERT INTO departamentos (nombre) VALUES (%s) RETURNING id;",
+                        (canal_nombre,),
+                    )
+                    dept = cur.fetchone()
+                    if dept:
+                        departamento_id = dept["id"]
+
+                # 2. Insertar solicitud
                 cur.execute(
                     query_solicitud,
                     (
@@ -247,9 +256,114 @@ def guardar_solicitud(usuario_id: int, resultado) -> tuple[bool, str]:
                 solicitud_id = cur.fetchone()["id"]
                 conn.commit()
 
-        return True, f"Solicitud registrada correctamente. ID: {solicitud_id}"
+        return True, f"Solicitud registrada correctamente. Folio: SOL-{str(solicitud_id).zfill(3)}", solicitud_id
     except Exception as e:
-        return False, f"Error al guardar la solicitud: {str(e)}"
+        return False, f"Error al guardar la solicitud: {str(e)}", None
+
+
+def obtener_solicitudes(
+    usuario_id: Optional[int] = None,
+    departamento_id: Optional[int] = None,
+    estado: Optional[str] = None,
+) -> list[dict[str, Any]]:
+    """Consulta las solicitudes de la BD uniendo usuario, facultad y departamento."""
+    query = """
+        SELECT 
+            s.id,
+            CONCAT('SOL-', LPAD(s.id::text, 3, '0')) AS folio,
+            s.usuario_id,
+            COALESCE(u.nombre, 'Anónimo') AS alumno_nombre,
+            COALESCE(u.correo, '') AS alumno_correo,
+            COALESCE(f.nombre, 'No especificada') AS alumno_facultad,
+            s.departamento_id,
+            COALESCE(d.nombre, s.canal_destino, 'Sin asignar') AS depto_nombre,
+            s.descripcion,
+            s.categoria,
+            s.prioridad,
+            s.canal_destino,
+            ROUND(s.confianza::numeric, 2) AS confianza,
+            s.alerta_supervisor,
+            s.motivo_alerta,
+            COALESCE(s.estado, 'Pendiente') AS estado,
+            TO_CHAR(s.fecha_creacion, 'YYYY-MM-DD HH24:MI') AS fecha
+        FROM solicitudes s
+        LEFT JOIN usuarios u ON s.usuario_id = u.id
+        LEFT JOIN facultades f ON u.facultad_id = f.id
+        LEFT JOIN departamentos d ON s.departamento_id = d.id
+        WHERE 1=1
+    """
+    params: list[Any] = []
+    if usuario_id:
+        query += " AND s.usuario_id = %s"
+        params.append(int(usuario_id))
+    if departamento_id:
+        query += " AND s.departamento_id = %s"
+        params.append(int(departamento_id))
+    if estado and estado != "todos":
+        query += " AND s.estado = %s"
+        params.append(estado)
+
+    query += " ORDER BY s.id DESC;"
+
+    try:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(query, tuple(params))
+                filas = []
+                for row in cur.fetchall():
+                    item = dict(row)
+                    if item.get("confianza") is not None:
+                        try:
+                            item["confianza"] = float(item["confianza"])
+                        except Exception:
+                            item["confianza"] = 0.0
+                    filas.append(item)
+                return filas
+    except Exception as e:
+        print(f"Error al obtener solicitudes: {e}")
+        return []
+
+
+def actualizar_estado_solicitud(solicitud_id: int, nuevo_estado: str) -> tuple[bool, str]:
+    """Actualiza el estado de una solicitud ('Pendiente', 'En revisión', 'Resuelta')."""
+    query = "UPDATE solicitudes SET estado = %s WHERE id = %s RETURNING id;"
+    try:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(query, (nuevo_estado, int(solicitud_id)))
+                if cur.fetchone():
+                    conn.commit()
+                    return True, "Estado actualizado con éxito."
+                return False, "Solicitud no encontrada."
+    except Exception as e:
+        return False, f"Error al actualizar estado: {str(e)}"
+
+
+def obtener_estadisticas_solicitudes(usuario_id: Optional[int] = None) -> dict[str, int]:
+    """Obtiene los contadores de solicitudes para las tarjetas estadísticas."""
+    query = """
+        SELECT 
+            COUNT(*)::int AS total,
+            COUNT(*) FILTER (WHERE estado = 'Pendiente' OR estado IS NULL)::int AS pendientes,
+            COUNT(*) FILTER (WHERE estado = 'En revisión' OR estado = 'En revision')::int AS revision,
+            COUNT(*) FILTER (WHERE estado = 'Resuelta' OR estado = 'Atendida')::int AS resueltas
+        FROM solicitudes
+        WHERE 1=1
+    """
+    params: list[Any] = []
+    if usuario_id:
+        query += " AND usuario_id = %s"
+        params.append(int(usuario_id))
+
+    try:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(query, tuple(params))
+                fila = cur.fetchone()
+                return dict(fila) if fila else {"total": 0, "pendientes": 0, "revision": 0, "resueltas": 0}
+    except Exception as e:
+        print(f"Error al obtener estadísticas: {e}")
+        return {"total": 0, "pendientes": 0, "revision": 0, "resueltas": 0}
 
 
 if __name__ == "__main__":
@@ -261,4 +375,4 @@ if __name__ == "__main__":
         for f in facultades:
             print(f"  [{f['id']}] {f['nombre']}")
     except Exception as e:
-        print(f"❌ Error al conectar o inicializar: {e}")
+        print(f"Error al conectar o inicializar: {e}")

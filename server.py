@@ -1,12 +1,14 @@
-"""Servidor Web y API ligera para el Sistema Universitario (SICOU_IA).
-Sirve los archivos de Frontend y expone endpoints para Login y Registro conectados a PostgreSQL.
+"""Servidor Web y API para el Sistema Universitario (SICOU_IA).
+Sirve los archivos de Frontend y conecta la interfaz con el Agente Inteligente y PostgreSQL.
 """
 
+import datetime
+import decimal
 import json
 import os
 import sys
 from http.server import HTTPServer, SimpleHTTPRequestHandler
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
 _FRONTEND_DIR = os.path.join(_DIR, "Frontend")
@@ -17,11 +19,24 @@ try:
 except ImportError:
     conexion = None
 
-# Importar el agente inteligente
+# Importar el agente inteligente de IA
 try:
     from agente import AgenteSolicitudes
-except ImportError:
-    AgenteSolicitudes = None
+    print("Entrenando y cargando modelo de Machine Learning y reglas en memoria...")
+    agente_ia = AgenteSolicitudes()
+    print("Agente Inteligente listo para procesar solicitudes.")
+except Exception as e:
+    print(f"⚠️ No se pudo inicializar el agente de IA: {e}")
+    agente_ia = None
+
+
+def serializador_json(obj):
+    """Convierte tipos no serializables nativamente por JSON (Decimal, datetime) a tipos válidos."""
+    if isinstance(obj, decimal.Decimal):
+        return float(obj)
+    if isinstance(obj, (datetime.date, datetime.datetime)):
+        return obj.isoformat()
+    return str(obj)
 
 
 class CustomHandler(SimpleHTTPRequestHandler):
@@ -36,7 +51,7 @@ class CustomHandler(SimpleHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.end_headers()
-        self.wfile.write(json.dumps(datos, ensure_ascii=False).encode("utf-8"))
+        self.wfile.write(json.dumps(datos, default=serializador_json, ensure_ascii=False).encode("utf-8"))
 
     def do_OPTIONS(self):
         """Manejo de pre-flight CORS."""
@@ -48,6 +63,7 @@ class CustomHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         url = urlparse(self.path)
+        params = parse_qs(url.query)
 
         # Redirigir la raíz al login
         if url.path == "/" or url.path == "":
@@ -59,12 +75,34 @@ class CustomHandler(SimpleHTTPRequestHandler):
         # Endpoint API: Obtener facultades
         if url.path == "/api/facultades":
             if not conexion:
-                return self._responder_json(500, {"error": "Módulo de conexión no disponible"})
+                return self._responder_json(500, {"error": "Módulo de base de datos no disponible"})
             try:
                 facultades = conexion.obtener_facultades()
                 return self._responder_json(200, {"facultades": facultades})
             except Exception as e:
                 return self._responder_json(500, {"error": str(e)})
+
+        # Endpoint API: Consultar solicitudes
+        if url.path == "/api/solicitudes":
+            if not conexion:
+                return self._responder_json(500, {"error": "Módulo de base de datos no disponible"})
+
+            usuario_id = params.get("usuario_id", [None])[0]
+            estado = params.get("estado", [None])[0]
+            depto_id = params.get("departamento_id", [None])[0]
+
+            solicitudes = conexion.obtener_solicitudes(
+                usuario_id=int(usuario_id) if usuario_id else None,
+                departamento_id=int(depto_id) if depto_id else None,
+                estado=estado,
+            )
+            estadisticas = conexion.obtener_estadisticas_solicitudes(
+                usuario_id=int(usuario_id) if usuario_id else None
+            )
+
+            return self._responder_json(
+                200, {"ok": True, "solicitudes": solicitudes, "estadisticas": estadisticas}
+            )
 
         # Servir archivos estáticos normalmente
         return super().do_GET()
@@ -113,81 +151,100 @@ class CustomHandler(SimpleHTTPRequestHandler):
             else:
                 return self._responder_json(401, {"ok": False, "mensaje": mensaje})
 
-        
-        # Endpoint API: Crear solicitud y procesarla con el agente IA
+        # Endpoint API: Análisis en tiempo real con IA (sin guardar en BD aún)
+        if url.path == "/api/analizar":
+            texto = datos.get("texto", "").strip()
+            if not texto:
+                return self._responder_json(400, {"error": "El texto a analizar es requerido"})
+
+            if not agente_ia:
+                return self._responder_json(500, {"error": "Agente IA no disponible en el servidor"})
+
+            try:
+                res = agente_ia.procesar(texto)
+                return self._responder_json(
+                    200,
+                    {
+                        "ok": True,
+                        "categoria": res.categoria,
+                        "prioridad": res.prioridad,
+                        "canal": res.canal,
+                        "confianza": float(res.confianza) if hasattr(res, "confianza") else 0.8,
+                        "alerta_supervisor": res.alerta_supervisor,
+                        "motivo_alerta": res.motivo_alerta,
+                        "palabras_clave": res.palabras_clave,
+                    },
+                )
+            except Exception as e:
+                return self._responder_json(500, {"error": f"Error en análisis IA: {str(e)}"})
+
+        # Endpoint API: Crear solicitud, procesar con IA y guardar en PostgreSQL
         if url.path == "/api/solicitudes":
-
             if not conexion:
-                return self._responder_json(
-                    500,
-                    {"error": "Módulo de conexión no disponible"}
-                )
+                return self._responder_json(500, {"error": "Módulo de base de datos no disponible"})
 
-            if AgenteSolicitudes is None:
-                return self._responder_json(
-                    500,
-                    {"error": "Agente inteligente no disponible"}
-                )
+            if not agente_ia:
+                return self._responder_json(500, {"error": "Agente inteligente no disponible"})
 
-            descripcion = datos.get("descripcion")
+            descripcion = datos.get("descripcion", "").strip()
             usuario_id = datos.get("usuario_id")
 
             if not descripcion or not usuario_id:
-                return self._responder_json(
-                    400,
-                    {"error": "La descripción y el usuario son obligatorios"}
-                )
+                return self._responder_json(400, {"error": "La descripción y el usuario son obligatorios"})
 
             try:
-                # 1. Ejecutar el agente inteligente
-                agente = AgenteSolicitudes()
-                resultado = agente.procesar(descripcion)
+                # 1. Ejecutar el agente inteligente híbrido (ML + Reglas + Ontología)
+                resultado = agente_ia.procesar(descripcion)
 
-                # 2. Guardar el resultado en PostgreSQL
-                ok, mensaje = conexion.guardar_solicitud(
-                    int(usuario_id),
-                    resultado
-                )
+                # 2. Guardar el resultado en la tabla solicitudes de PostgreSQL
+                ok, mensaje, solicitud_id = conexion.guardar_solicitud(int(usuario_id), resultado)
 
                 if not ok:
-                    return self._responder_json(
-                        500,
-                        {"error": mensaje}
-                    )
+                    return self._responder_json(500, {"error": mensaje})
 
-                # 3. Responder al frontend
+                # 3. Retornar confirmación y datos clasificados al frontend
                 return self._responder_json(
                     201,
                     {
                         "ok": True,
+                        "solicitud_id": solicitud_id,
                         "mensaje": mensaje,
                         "analisis": {
                             "categoria": resultado.categoria,
                             "prioridad": resultado.prioridad,
                             "canal": resultado.canal,
-                            "confianza": resultado.confianza,
+                            "confianza": float(resultado.confianza),
                             "alerta_supervisor": resultado.alerta_supervisor,
-                            "motivo_alerta": resultado.motivo_alerta
-                        }
-                    }
+                            "motivo_alerta": resultado.motivo_alerta,
+                        },
+                    },
                 )
-
             except Exception as e:
-                return self._responder_json(
-                    500,
-                    {"error": f"Error al procesar la solicitud: {str(e)}"}
-                )
+                return self._responder_json(500, {"error": f"Error al procesar solicitud: {str(e)}"})
 
-        
+        # Endpoint API: Actualizar estado de solicitud (por el administrador)
+        if url.path == "/api/solicitudes/estado":
+            if not conexion:
+                return self._responder_json(500, {"error": "Módulo de base de datos no disponible"})
+
+            solicitud_id = datos.get("solicitud_id")
+            nuevo_estado = datos.get("estado")
+
+            if not solicitud_id or not nuevo_estado:
+                return self._responder_json(400, {"error": "solicitud_id y estado son requeridos"})
+
+            ok, mensaje = conexion.actualizar_estado_solicitud(int(solicitud_id), nuevo_estado)
+            return self._responder_json(200 if ok else 400, {"ok": ok, "mensaje": mensaje})
+
         return self._responder_json(404, {"error": "Ruta no encontrada"})
 
 
 def iniciar_servidor(puerto: int = 8000):
     servidor = HTTPServer(("0.0.0.0", puerto), CustomHandler)
-    print(f"============================================================")
-    print(f"🚀 Servidor SICOU_IA iniciado exitosamente")
-    print(f"👉 Abre en tu navegador: http://localhost:{puerto}/pages/login.html")
-    print(f"============================================================")
+    print("============================================================")
+    print("🚀 Servidor SICOU_IA iniciado exitosamente")
+    print(f"Abre en tu navegador: http://localhost:{puerto}/pages/login.html")
+    print("============================================================")
     try:
         servidor.serve_forever()
     except KeyboardInterrupt:

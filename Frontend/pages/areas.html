@@ -1,117 +1,254 @@
-
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Sistema Universitario | Panel de Gerencia</title>
-
+    <title>Sistema Universitario | Panel de Administración</title>
     <link rel="stylesheet" href="../css/estilo_areas.css">
+
+    <!-- Estilos directos para garantizar que solo se muestre la bandeja seleccionada -->
+    <style>
+        .seccion-panel {
+            display: none !important;
+        }
+        .seccion-panel.activa {
+            display: block !important;
+        }
+
+        /* Buscador y filtros limpios en la bandeja de solicitudes */
+        .barra-herramientas {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            background: #ffffff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .barra-herramientas select,
+        .barra-herramientas input {
+            padding: 8px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+            background: #f8fafc;
+        }
+
+        .barra-herramientas input:focus,
+        .barra-herramientas select:focus {
+            border-color: #1d5c96;
+            background: #ffffff;
+        }
+
+        .badge-alerta {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #f87171;
+            padding: 2px 7px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 6px;
+        }
+    </style>
 </head>
 
 <body>
 
-    <!-- Encabezado -->
+    <!-- Encabezado con el único botón oficial de Cerrar sesión -->
     <header class="encabezado">
-
         <div class="logo">
             <h2>Sistema Universitario</h2>
         </div>
 
         <div class="usuario">
-            <span>Gerente de Área</span>
+            <span id="nombreUsuarioAdmin">Administrador</span>
             <button id="btnCerrarSesion">Cerrar sesión</button>
         </div>
-
     </header>
 
     <div class="contenedor">
 
         <!-- Menú lateral -->
         <aside class="sidebar">
-
             <h3>MENÚ PRINCIPAL</h3>
-
-            <nav>
-                <a href="#" class="activo">Inicio</a>
-                <a href="#">Solicitudes</a>
-                <a href="#">Notificaciones</a>
-                <a href="#">Mi perfil</a>
+            <nav id="menuSidebar">
+                <a href="#" class="activo" data-vista="inicio">Inicio</a>
+                <a href="#" data-vista="solicitudes">Solicitudes</a>
+                <a href="#" data-vista="notificaciones">Notificaciones <span class="badge-notif" id="contadorNotifAdmin">0</span></a>
+                <a href="#" data-vista="perfil">Mi perfil</a>
             </nav>
-
         </aside>
 
-
-        <!-- Contenido principal -->
+        <!-- Contenido dinámico según la opción seleccionada -->
         <main class="contenido">
 
-            <section class="bienvenida">
-                <h1>Panel de Gerencia</h1>
-                <p>Bienvenido al sistema de gestión de solicitudes universitarias.</p>
-                <h3 id="nombreArea">Área Académica</h3>
+            <!-- ======================================================== -->
+            <!-- BANDEJA 1: INICIO (Estadísticas y Resumen Ejecutivo)     -->
+            <!-- ======================================================== -->
+            <section id="vista-inicio" class="seccion-panel activa">
+                <div class="bienvenida">
+                    <h1>Panel de Gerencia</h1>
+                    <p>Bienvenido al sistema de clasificación y canalización de solicitudes universitarias.</p>
+                    <h3 id="nombreArea">Área Administrativa Central</h3>
+                </div>
+
+                <div class="estadisticas">
+                    <div class="tarjeta">
+                        <h3>Total de solicitudes</h3>
+                        <p id="totalSolicitudes">0</p>
+                    </div>
+
+                    <div class="tarjeta">
+                        <h3>Pendientes</h3>
+                        <p id="solicitudesPendientes">0</p>
+                    </div>
+
+                    <div class="tarjeta">
+                        <h3>En revisión</h3>
+                        <p id="solicitudesRevision">0</p>
+                    </div>
+
+                    <div class="tarjeta">
+                        <h3>Resueltas</h3>
+                        <p id="solicitudesResueltas">0</p>
+                    </div>
+                </div>
+
+                <!-- Tarjeta de estado del sistema -->
+                <div class="seccion-solicitudes" style="margin-top: 25px;">
+                    <div class="titulo-seccion">
+                        <h2>Estado del Agente Inteligente</h2>
+                    </div>
+                    <div style="font-size: 14px; color: #475569; line-height: 1.8;">
+                        <p>✔ <strong>Modelo de Clasificación (ML):</strong> TF-IDF + Regresión Logística (Activo y entrenado).</p>
+                        <p>✔ <strong>Conocimiento Simbólico:</strong> Grafo de Ontología con NetworkX y Motor de Reglas SI-ENTONCES.</p>
+                        <p>✔ <strong>Supervisión Humana:</strong> Detección automática de criticidad y canalización por departamentos.</p>
+                        <div style="margin-top: 15px;">
+                            <button onclick="cambiarVistaAdmin('solicitudes')" style="background:#1d5c96;color:white;border:none;padding:10px 18px;border-radius:6px;cursor:pointer;font-weight:600;">
+                                Ir a la Bandeja de Solicitudes →
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </section>
 
-            <section class="estadisticas">
 
-                <div class="tarjeta">
-                    <h3>Total de solicitudes</h3>
-                    <p id="totalSolicitudes">25</p>
+            <!-- ======================================================== -->
+            <!-- BANDEJA 2: SOLICITUDES (Bandeja Completa y Única)        -->
+            <!-- ======================================================== -->
+            <section id="vista-solicitudes" class="seccion-panel">
+                <div class="bienvenida">
+                    <h1>Bandeja de Solicitudes</h1>
+                    <p>Administra, filtra y canaliza todas las solicitudes registradas por los estudiantes.</p>
                 </div>
 
-                <div class="tarjeta">
-                    <h3>Pendientes</h3>
-                    <p id="solicitudesPendientes">8</p>
+                <!-- Barra de Herramientas de Filtros y Búsqueda -->
+                <div class="barra-herramientas">
+                    <div>
+                        <label for="filtroEstado" style="font-size:13px; font-weight:600; color:#1e293b;">Estado:</label>
+                        <select id="filtroEstado" onchange="aplicarFiltros()">
+                            <option value="todos">Todos los estados</option>
+                            <option value="Pendiente">Pendiente</option>
+                            <option value="En revisión">En revisión</option>
+                            <option value="Resuelta">Resuelta</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="filtroPrioridad" style="font-size:13px; font-weight:600; color:#1e293b;">Prioridad:</label>
+                        <select id="filtroPrioridad" onchange="aplicarFiltros()">
+                            <option value="todos">Todas las prioridades</option>
+                            <option value="Alta">Alta</option>
+                            <option value="Media">Media</option>
+                            <option value="Baja">Baja</option>
+                        </select>
+                    </div>
+
+                    <div style="flex:1;">
+                        <input type="text" id="inputBuscar" placeholder="🔍 Buscar por alumno, folio o palabras clave..." oninput="aplicarFiltros()" style="width:100%;">
+                    </div>
                 </div>
 
-                <div class="tarjeta">
-                    <h3>En revisión</h3>
-                    <p id="solicitudesRevision">5</p>
+                <!-- Tabla Principal de Solicitudes -->
+                <div class="seccion-solicitudes">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Folio</th>
+                                <th>Alumno y Facultad</th>
+                                <th>Solicitud clasificada</th>
+                                <th>Fecha</th>
+                                <th>Estado</th>
+                                <th>Gestionar</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaSolicitudesBody">
+                            <tr>
+                                <td colspan="6" style="text-align:center;padding:25px;color:#64748b;">
+                                    Consultando solicitudes en la base de datos...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
-
-                <div class="tarjeta">
-                    <h3>Resueltas</h3>
-                    <p id="solicitudesResueltas">12</p>
-                </div>
-
             </section>
 
 
-            <!-- Solicitudes recientes -->
-            <section class="seccion-solicitudes">
-
-                <div class="titulo-seccion">
-                    <h2>Solicitudes recientes</h2>
-                    <button id="btnVerTodas">Ver todas</button>
+            <!-- ======================================================== -->
+            <!-- BANDEJA 3: NOTIFICACIONES (Alertas del Agente IA)        -->
+            <!-- ======================================================== -->
+            <section id="vista-notificaciones" class="seccion-panel">
+                <div class="bienvenida">
+                    <h1>Bandeja de Notificaciones y Alertas</h1>
+                    <p>Solicitudes escaladas por el Agente IA para atención prioritaria del supervisor humano.</p>
                 </div>
 
-                <table>
+                <div id="contenedorAlertas" class="lista-notificaciones">
+                    <!-- Se llena dinámicamente con JavaScript -->
+                </div>
+            </section>
 
-                    <thead>
-                        <tr>
-                            <th>Folio</th>
-                            <th>Alumno</th>
-                            <th>Solicitud</th>
-                            <th>Fecha</th>
-                            <th>Estado</th>
-                            <th>Acción</th>
-                        </tr>
-                    </thead>
 
-                    <tbody id="tablaSolicitudes">
+            <!-- ======================================================== -->
+            <!-- BANDEJA 4: MI PERFIL (Datos del Administrador)           -->
+            <!-- ======================================================== -->
+            <section id="vista-perfil" class="seccion-panel">
+                <div class="bienvenida">
+                    <h1>Mi Perfil</h1>
+                    <p>Información de tu cuenta de usuario administrador.</p>
+                </div>
 
-                    </tbody>
+                <div class="tarjeta-perfil">
+                    <div class="perfil-avatar">A</div>
+                    <h2 id="perfilNombre" style="color:#15345b;margin-bottom:4px;">Administrador</h2>
+                    <p style="color:#64748b;font-size:13px;" id="perfilRol">Rol: Administrador del Sistema</p>
 
-                </table>
+                    <div class="perfil-grid">
+                        <div class="label">Correo institucional:</div>
+                        <div class="valor" id="perfilCorreo">adminsicou@unach.mx</div>
 
+                        <div class="label">Adscripción:</div>
+                        <div class="valor" id="perfilFacultad">Administración Central</div>
+
+                        <div class="label">Permisos:</div>
+                        <div class="valor">Gestión de Solicitudes, Supervisión y Canalización</div>
+
+                        <div class="label">Estado de sesión:</div>
+                        <div class="valor"><span style="color:#16a34a;font-weight:bold;">● Activa</span></div>
+                    </div>
+                </div>
             </section>
 
         </main>
-
     </div>
 
-    <script src="../js/app.js"></script>
-
+    <!-- Script con versión para forzar actualización inmediata -->
+    <script src="../js/app.js?v=4"></script>
 </body>
 </html>
