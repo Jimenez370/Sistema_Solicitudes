@@ -181,19 +181,31 @@ function renderizarTablaSolicitudes(solicitudes, filtros = {}) {
     }
 
     datos.forEach(s => {
-        const tr = document.createElement('tr');
-        const prioClase = (s.prioridad || 'media').toLowerCase();
-        tr.innerHTML = `
-            <td><strong>${s.folio}</strong></td>
-            <td>${s.categoria || 'General'}</td>
-            <td>${s.descripcion}</td>
-            <td>${s.fecha || '-'}</td>
-            <td><span class="badge badge-${prioClase}">${s.prioridad || 'Media'}</span></td>
-            <td><span class="badge ${getClaseEstado(s.estado)}">${s.estado || 'Pendiente'}</span></td>
-            <td><button class="btn-ver" onclick="verDetalle('${s.folio}')">Ver</button></td>
-        `;
-        tbody.appendChild(tr);
-    });
+    const tr = document.createElement('tr');
+    const prioClase = (s.prioridad || 'media').toLowerCase();
+    
+    // Botón de cancelar: solo visible si está Pendiente
+    const puedeCancelar = (s.estado === 'Pendiente');
+    const btnCancelar = puedeCancelar 
+        ? `<button class="btn-cancelar" onclick="cancelarSolicitud('${s.folio}')" title="Cancelar solicitud">✕ Cancelar</button>`
+        : '';
+    
+    tr.innerHTML = `
+        <td><strong>${s.folio}</strong></td>
+        <td>${s.categoria || 'General'}</td>
+        <td>${s.descripcion}</td>
+        <td>${s.fecha || '-'}</td>
+        <td><span class="badge badge-${prioClase}">${s.prioridad || 'Media'}</span></td>
+        <td><span class="badge ${getClaseEstado(s.estado)}">${s.estado || 'Pendiente'}</span></td>
+        <td>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button class="btn-ver" onclick="verDetalle('${s.folio}')">Ver</button>
+                ${btnCancelar}
+            </div>
+        </td>
+    `;
+    tbody.appendChild(tr);
+});
 }
 
 function getClaseEstado(estado) {
@@ -202,7 +214,8 @@ function getClaseEstado(estado) {
         'En revisión': 'badge-revision',
         'En revision': 'badge-revision',
         'Atendida': 'badge-atendida',
-        'Resuelta': 'badge-atendida'
+        'Resuelta': 'badge-atendida',
+        'Cancelada': 'badge-cancelada'
     };
     return clases[estado] || 'badge-pendiente';
 }
@@ -715,3 +728,59 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// ========== CANCELAR SOLICITUD ==========
+async function cancelarSolicitud(folio) {
+    // Buscar la solicitud en memoria
+    const s = listaSolicitudesMemoria.find(x => x.folio === folio);
+    if (!s) {
+        alert('❌ No se encontró la solicitud.');
+        return;
+    }
+    
+    // Validar estado
+    if (s.estado !== 'Pendiente') {
+        alert(`❌ No se puede cancelar una solicitud en estado "${s.estado}".\nSolo se pueden cancelar solicitudes pendientes.`);
+        return;
+    }
+    
+    // Confirmación
+    const confirmar = confirm(
+        `¿Estás seguro de que deseas cancelar la solicitud ${folio}?\n\n` +
+        `Descripción: ${s.descripcion.substring(0, 100)}${s.descripcion.length > 100 ? '...' : ''}\n\n` +
+        `⚠️ Esta acción no se puede deshacer.`
+    );
+    
+    if (!confirmar) return;
+    
+    const token = obtenerToken();
+    if (!token) {
+        alert('Sesión no detectada. Inicia sesión nuevamente.');
+        return;
+    }
+    
+    try {
+        const respuesta = await fetch('/api/solicitudes/cancelar', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ solicitud_id: s.id })
+        });
+        
+        const data = await respuesta.json();
+        
+        if (respuesta.ok && data.ok) {
+            alert('✅ ' + (data.mensaje || 'Solicitud cancelada correctamente.'));
+            // Recargar tabla y estadísticas
+            cargarEstadisticas();
+            cargarMisSolicitudes();
+            cargarNotificaciones();
+        } else {
+            alert('❌ ' + (data.mensaje || data.error || 'Error al cancelar la solicitud.'));
+        }
+    } catch (error) {
+        console.error('Error al cancelar solicitud:', error);
+        alert('⚠️ No se pudo comunicar con el servidor.');
+    }
+}

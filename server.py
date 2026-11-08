@@ -433,6 +433,26 @@ class CustomHandler(SimpleHTTPRequestHandler):
             
             return self._responder_json(200 if ok else 400, {"ok": ok, "mensaje": mensaje})
 
+        # Endpoint API: Cancelar solicitud del alumno (solo si es suya y está pendiente)
+        if url.path == "/api/solicitudes/cancelar":
+            if not conexion:
+                return self._responder_json(500, {"error": "Módulo de base de datos no disponible"})
+            
+            usuario = self._obtener_usuario_sesion()
+            if not usuario:
+                return self._responder_json(401, {"ok": False, "error": "Sesión no válida"})
+            
+            # Solo estudiantes pueden cancelar sus propias solicitudes
+            if usuario["rol"] not in ("estudiante", "usuario"):
+                return self._responder_json(403, {"ok": False, "error": "No tienes permisos para cancelar solicitudes."})
+            
+            solicitud_id = datos.get("solicitud_id")
+            if not solicitud_id:
+                return self._responder_json(400, {"ok": False, "error": "solicitud_id es requerido"})
+            
+            ok, mensaje = conexion.cancelar_solicitud_usuario(int(solicitud_id), int(usuario["id"]))
+            return self._responder_json(200 if ok else 400, {"ok": ok, "mensaje": mensaje})
+
         return self._responder_json(404, {"error": "Ruta no encontrada"})
 
 

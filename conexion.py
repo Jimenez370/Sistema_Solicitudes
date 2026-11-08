@@ -354,14 +354,15 @@ def actualizar_estado_solicitud(solicitud_id: int, nuevo_estado: str) -> tuple[b
 
 
 def obtener_estadisticas_solicitudes(usuario_id: Optional[int] = None,
-                                    departamento_id: Optional[int] = None) -> dict[str, int]:
+                                     departamento_id: Optional[int] = None) -> dict[str, int]:
     """Obtiene los contadores de solicitudes para las tarjetas estadísticas."""
     query = """
         SELECT 
             COUNT(*)::int AS total,
             COUNT(*) FILTER (WHERE estado = 'Pendiente' OR estado IS NULL)::int AS pendientes,
             COUNT(*) FILTER (WHERE estado = 'En revisión' OR estado = 'En revision')::int AS revision,
-            COUNT(*) FILTER (WHERE estado = 'Resuelta' OR estado = 'Atendida')::int AS resueltas
+            COUNT(*) FILTER (WHERE estado = 'Resuelta' OR estado = 'Atendida')::int AS resueltas,
+            COUNT(*) FILTER (WHERE estado = 'Cancelada')::int AS canceladas
         FROM solicitudes
         WHERE 1=1
     """
@@ -369,20 +370,18 @@ def obtener_estadisticas_solicitudes(usuario_id: Optional[int] = None,
     if usuario_id:
         query += " AND usuario_id = %s"
         params.append(int(usuario_id))
-
     if departamento_id:
         query += " AND departamento_id = %s"
         params.append(int(departamento_id))
-
     try:
         with get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(query, tuple(params))
                 fila = cur.fetchone()
-                return dict(fila) if fila else {"total": 0, "pendientes": 0, "revision": 0, "resueltas": 0}
+                return dict(fila) if fila else {"total": 0, "pendientes": 0, "revision": 0, "resueltas": 0, "canceladas": 0}
     except Exception as e:
         print(f"Error al obtener estadísticas: {e}")
-        return {"total": 0, "pendientes": 0, "revision": 0, "resueltas": 0}
+        return {"total": 0, "pendientes": 0, "revision": 0, "resueltas": 0, "canceladas": 0}
 
 def actualizar_password_usuario(usuario_id: int, password_actual: str, password_nueva: str) -> tuple[bool, str]:
     """Actualiza la contraseña de un usuario después de verificar la actual."""
@@ -436,6 +435,46 @@ def actualizar_datos_usuario(usuario_id: int, nombre: str, correo: str) -> tuple
         if "usuarios_correo_key" in error_msg or "unique" in error_msg.lower():
             return False, "El correo electrónico ya se encuentra registrado."
         return False, f"Error al actualizar datos: {error_msg}"
+
+
+def cancelar_solicitud_usuario(solicitud_id: int, usuario_id: int) -> tuple[bool, str]:
+    """Cancela una solicitud, solo si pertenece al usuario y está en estado Pendiente."""
+    query_verificar = """
+        SELECT id, estado, usuario_id 
+        FROM solicitudes 
+        WHERE id = %s;
+    """
+    query_cancelar = """
+        UPDATE solicitudes 
+        SET estado = 'Cancelada' 
+        WHERE id = %s AND usuario_id = %s AND estado = 'Pendiente'
+        RETURNING id;
+    """
+    try:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                # 1. Verificar que la solicitud existe
+                cur.execute(query_verificar, (int(solicitud_id),))
+                solicitud = cur.fetchone()
+                if not solicitud:
+                    return False, "La solicitud no existe."
+                
+                # 2. Verificar que pertenece al usuario
+                if solicitud["usuario_id"] != int(usuario_id):
+                    return False, "No tienes permiso para cancelar esta solicitud."
+                
+                # 3. Verificar que está en estado Pendiente
+                if solicitud["estado"] != "Pendiente":
+                    return False, f"La solicitud no se puede cancelar (estado actual: {solicitud['estado']})."
+                
+                # 4. Cancelar la solicitud
+                cur.execute(query_cancelar, (int(solicitud_id), int(usuario_id)))
+                if cur.fetchone():
+                    conn.commit()
+                    return True, "Solicitud cancelada correctamente."
+                return False, "No se pudo cancelar la solicitud."
+    except Exception as e:
+        return False, f"Error al cancelar solicitud: {str(e)}"
 
 
 if __name__ == "__main__":
