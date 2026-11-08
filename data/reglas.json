@@ -8,13 +8,13 @@
   },
   "reglas": [
     {
-      "nombre": "R1_acoso_violencia",
-      "terminos": ["acoso", "hostiga", "amenaza", "amenazas", "violencia", "agresion", "bullying", "maltrato", "discriminacion", "comentarios inapropiados"],
-      "requiere_categoria": null,
-      "prioridad": "Alta",
-      "alerta_humana": true,
-      "forzar_categoria": "Bienestar Universitario",
-      "descripcion": "SI contiene acoso/violencia ENTONCES prioridad Alta + alerta a supervisor"
+    "nombre": "R1_acoso_violencia",
+    "terminos": ["acoso", "acosando", "hostiga", "hostigando", "amenaza", "amenazas", "violencia", "agresion", "bullying", "maltrato", "discriminacion", "comentarios inapropiados", "incomodo"],
+    "requiere_categoria": null,
+    "prioridad": "Alta",
+    "alerta_humana": true,
+    "forzar_categoria": "Bienestar Universitario",
+    "descripcion": "SI contiene acoso/violencia ENTONCES prioridad Alta + alerta a supervisor"
     },
     {
       "nombre": "R2_emergencia",
