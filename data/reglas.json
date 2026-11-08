@@ -69,6 +69,24 @@
       "alerta_humana": false,
       "forzar_categoria": null,
       "descripcion": "SI hay problema de dinero/beca retenida ENTONCES prioridad Media"
+    },
+    {
+      "nombre": "R8_texto_ambiguo",
+      "terminos": ["ambiguo", "poco claro", "no especificado", "no se que", "no se como", "no se donde", "algo sobre un", "no estoy seguro de", "no tengo claro", "duda general", "no sabria", "no sabría"],
+      "requiere_categoria": null,
+      "prioridad": "Media",
+      "alerta_humana": true,
+      "forzar_categoria": null,
+      "descripcion": "SI el texto es vago/ambiguo ENTONCES alerta al supervisor humano para revisión manual"
+    },
+    {
+      "nombre": "R9_solicitud_mixta",
+      "terminos": ["ademas", "además", "y también", "y tambien", "por otro lado", "también necesito", "tambien necesito"],
+      "requiere_categoria": null,
+      "prioridad": "Media",
+      "alerta_humana": true,
+      "forzar_categoria": null,
+      "descripcion": "SI el usuario menciona múltiples temas ENTONCES alerta al supervisor porque puede requerir canalización dual"
     }
   ]
 }

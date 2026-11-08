@@ -79,15 +79,18 @@ class AgenteSolicitudes:
                     tripletas.append((c, "gestionada_por", dest))
                     break
 
+        
         # SUPERVISIÓN HUMANA
         motivo = ""
         if alerta_regla:
             motivo = "Criticidad alta (reglas: " + ", ".join(reglas) + ")"
+            # Solo enviar al supervisor si la alerta viene de R8 o R9 (ambigüedad/mixto)
+            if any(r in ["R8_texto_ambiguo", "R9_solicitud_mixta"] for r in reglas):
+                canal = BANDEJA_SUPERVISOR
         elif confianza < self.umbral:
             motivo = f"Confianza baja ({confianza:.2f} < {self.umbral})"
+            canal = BANDEJA_SUPERVISOR
         alerta = bool(motivo)
-        if alerta and not alerta_regla:
-            canal = BANDEJA_SUPERVISOR      # no se procesa automáticamente
 
         # ACCIÓN: notificaciones simuladas
         notif = []

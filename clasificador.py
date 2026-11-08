@@ -12,10 +12,21 @@ from preprocesamiento import preprocesar
 
 def crear_pipeline() -> Pipeline:
     return Pipeline([
-        ("tfidf", TfidfVectorizer(preprocessor=preprocesar, ngram_range=(1, 2))),
-        ("clf", LogisticRegression(C=10, max_iter=2000)),
+        ("tfidf", TfidfVectorizer(
+            preprocessor=preprocesar,
+            ngram_range=(1, 3),      # ← Cambiado de (1,2) a (1,3) para capturar trigramas
+            max_features=5000,       # ← Aumentado para más vocabulario
+            min_df=1,                # ← Incluir términos que aparecen al menos 1 vez
+            max_df=0.95,             # ← Excluir términos que aparecen en >95% de docs
+            sublinear_tf=True        # ← Aplicar log-normalization a TF
+        )),
+        ("clf", LogisticRegression(
+            C=5,                     # ← Reducido de 10 para evitar overfitting
+            max_iter=3000,           # ← Aumentado para convergencia
+            class_weight='balanced', # ← Balancear clases si hay desbalance
+            solver='lbfgs'           # ← Solver más estable
+        )),
     ])
-
 
 class ClasificadorSolicitudes:
     def __init__(self):
