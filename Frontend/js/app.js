@@ -382,25 +382,207 @@ async function cambiarEstadoDirecto(solicitudId, nuevoEstado) {
  * Muestra el análisis completo del agente IA para la solicitud seleccionada
  */
 function verDetalleSolicitudAdmin(solicitudId) {
-    const s = solicitudesGlobal.find((x) => x.id === solicitudId);
+    const s = solicitudesGlobal.find(x => x.id === solicitudId);
     if (!s) return;
 
-    let info = `📋 REPORTE DE SOLICITUD ${s.folio}\n\n`;
-    info += `👤 Alumno: ${s.alumno_nombre} (${s.alumno_correo || "Sin correo"})\n`;
-    info += `🏛️ Facultad: ${s.alumno_facultad || "No especificada"}\n`;
-    info += `📅 Fecha: ${s.fecha}\n`;
-    info += `📌 Estado actual: ${s.estado}\n\n`;
-    info += `----------------------------------------\n`;
-    info += `🤖 ANÁLISIS DEL AGENTE DE INTELIGENCIA ARTIFICIAL:\n`;
-    info += `📂 Categoría (Machine Learning): ${s.categoria}\n`;
-    info += `⚡ Prioridad (Motor de Reglas): ${s.prioridad}\n`;
-    info += `🏢 Departamento destino: ${s.depto_nombre || s.canal_destino}\n`;
-    info += `🎯 Nivel de confianza: ${((s.confianza || 0) * 100).toFixed(1)}%\n`;
-    info += `⚠️ Alerta a supervisor: ${s.alerta_supervisor ? "SÍ -> " + (s.motivo_alerta || "Atención inmediata") : "No requerida"}\n\n`;
-    info += `----------------------------------------\n`;
-    info += `📝 DESCRIPCIÓN:\n${s.descripcion}`;
+    // Eliminar modal anterior si existe
+    const anterior = document.getElementById('modalDetalleSolicitud');
+    if (anterior) anterior.remove();
 
-    alert(info);
+    const confianza = ((s.confianza || 0) * 100).toFixed(1);
+    const departamento = s.depto_nombre || s.canal_destino || 'No asignado';
+
+    const modal = document.createElement('div');
+    modal.id = 'modalDetalleSolicitud';
+
+    modal.style.cssText = `
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 999999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(15, 23, 42, 0.65);
+        padding: 20px;
+        box-sizing: border-box;
+    `;
+
+
+    modal.innerHTML = `
+        <div class="detalle-modal-overlay">
+            <div class="detalle-modal">
+
+                <div class="detalle-modal-header">
+                    <div>
+                        <span class="detalle-etiqueta">DETALLE DE SOLICITUD</span>
+                        <h2>${s.folio || 'Sin folio'}</h2>
+                    </div>
+                    <button class="detalle-cerrar" onclick="cerrarDetalleSolicitud()">
+                        &times;
+                    </button>
+                </div>
+
+                <div class="detalle-modal-body">
+
+                    <div class="detalle-seccion">
+                        <h3>Información del estudiante</h3>
+                        <div class="detalle-grid">
+                            <div>
+                                <span>Nombre</span>
+                                <strong>${s.alumno_nombre || 'No disponible'}</strong>
+                            </div>
+                            <div>
+                                <span>Correo electrónico</span>
+                                <strong>${s.alumno_correo || 'Sin correo'}</strong>
+                            </div>
+                            <div>
+                                <span>Facultad</span>
+                                <strong>${s.alumno_facultad || 'No especificada'}</strong>
+                            </div>
+                            <div>
+                                <span>Fecha de registro</span>
+                                <strong>${s.fecha || 'No disponible'}</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detalle-seccion">
+                        <h3>Estado de la solicitud</h3>
+                        <span class="detalle-estado">
+                            ${s.estado || 'Sin estado'}
+                        </span>
+                    </div>
+
+                    <div class="detalle-seccion">
+                        <h3>Análisis del agente inteligente</h3>
+
+                        <div class="detalle-grid">
+                            <div>
+                                <span>Categoría</span>
+                                <strong>${s.categoria || 'No identificada'}</strong>
+                            </div>
+                            <div>
+                                <span>Prioridad</span>
+                                <strong>${s.prioridad || 'No definida'}</strong>
+                            </div>
+                            <div>
+                                <span>Departamento destino</span>
+                                <strong>${departamento}</strong>
+                            </div>
+                            <div>
+                                <span>Nivel de confianza</span>
+                                <strong>${confianza}%</strong>
+                            </div>
+                        </div>
+
+                        <div class="detalle-confianza">
+                            <div class="detalle-confianza-barra">
+                                <div style="width: ${Math.min(100, Math.max(0, Number(confianza)))}%"></div>
+                            </div>
+                        </div>
+
+                        <div class="detalle-alerta ${s.alerta_supervisor ? 'activa' : ''}">
+                            <strong>Alerta a supervisor:</strong>
+                            ${s.alerta_supervisor
+                                ? 'Sí - ' + (s.motivo_alerta || 'Atención inmediata')
+                                : 'No requerida'}
+                        </div>
+                    </div>
+
+                    <div class="detalle-seccion">
+                        <h3>Descripción de la solicitud</h3>
+                        <div class="detalle-descripcion">
+                            ${s.descripcion || 'Sin descripción'}
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="detalle-modal-footer">
+                    <button onclick="cerrarDetalleSolicitud()">
+                        Cerrar
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    `;
+
+    
+const contenidoModal = modal.querySelector('.detalle-modal');
+
+if (contenidoModal) {
+    contenidoModal.style.cssText = `
+        position: relative;
+        background: #ffffff;
+        width: 100%;
+        max-width: 700px;
+        max-height: 90vh;
+        overflow-y: auto;
+        border-radius: 14px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+        color: #263445;
+        font-family: Arial, sans-serif;
+    `;
+
+    const encabezado = contenidoModal.querySelector('.detalle-modal-header');
+    if (encabezado) {
+        encabezado.style.cssText = `
+            background: #15345b;
+            color: white;
+            padding: 22px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        `;
+    }
+
+    const cuerpo = contenidoModal.querySelector('.detalle-modal-body');
+    if (cuerpo) {
+        cuerpo.style.cssText = `
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        `;
+    }
+
+    contenidoModal.querySelectorAll('.detalle-modal-section').forEach(seccion => {
+        seccion.style.cssText = `
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 18px;
+        `;
+    });
+
+    contenidoModal.querySelectorAll('h3').forEach(titulo => {
+        titulo.style.cssText = `
+            color: #15345b;
+            font-size: 16px;
+            margin-bottom: 14px;
+        `;
+    });
+
+    const pie = contenidoModal.querySelector('.detalle-modal-footer');
+    if (pie) {
+        pie.style.cssText = `
+            padding: 16px 25px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: flex-end;
+        `;
+    }
+}
+
+    document.body.appendChild(modal);
+}
+
+function cerrarDetalleSolicitud() {
+    const modal = document.getElementById('modalDetalleSolicitud');
+    if (modal) modal.remove();
 }
 
 // Exportar funciones para los atributos inline del HTML

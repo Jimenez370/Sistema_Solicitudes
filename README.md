@@ -268,3 +268,38 @@ Bienestar Universitario		gerente.bienestar@sicou.test
 
 - Contraseña para los cuatro: 
 Prueba2026*
+
+
+# Se agrega en DB los departamentos/áreas
+INSERT INTO facultades (nombre)
+VALUES ('Departamento de Coordinación Académica')
+
+INSERT INTO facultades (nombre)
+VALUES ('Departamento de Servicios Escolares')
+
+INSERT INTO facultades (nombre)
+VALUES ('Departamento Soporte Técnico')
+
+INSERT INTO facultades (nombre)
+VALUES ('Departamento de Bienestar Universitario')
+
+# Se cambian los usuarios creados como representantes de áreas a su respectiva area
+UPDATE usuarios
+SET facultad_id = 10
+WHERE id = 5;
+
+UPDATE usuarios
+SET facultad_id = 11
+WHERE id = 6;
+
+UPDATE usuarios
+SET facultad_id = 12
+WHERE id = 7;
+
+UPDATE usuarios
+SET facultad_id = 13
+WHERE id = 8;
+
+
+
+
