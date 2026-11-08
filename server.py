@@ -387,6 +387,52 @@ class CustomHandler(SimpleHTTPRequestHandler):
             ok, mensaje = conexion.actualizar_estado_solicitud(int(solicitud_id), nuevo_estado)
             return self._responder_json(200 if ok else 400, {"ok": ok, "mensaje": mensaje})
 
+                # Endpoint API: Cambiar contraseña del usuario
+        if url.path == "/api/usuario/password":
+            if not conexion:
+                return self._responder_json(500, {"error": "Módulo de base de datos no disponible"})
+            
+            usuario = self._obtener_usuario_sesion()
+            if not usuario:
+                return self._responder_json(401, {"ok": False, "error": "Sesión no válida"})
+            
+            password_actual = datos.get("password_actual", "")
+            password_nueva = datos.get("password_nueva", "")
+            
+            if not password_actual or not password_nueva:
+                return self._responder_json(400, {"ok": False, "error": "Ambas contraseñas son requeridas"})
+            
+            ok, mensaje = conexion.actualizar_password_usuario(
+                int(usuario["id"]),
+                password_actual,
+                password_nueva
+            )
+            
+            return self._responder_json(200 if ok else 400, {"ok": ok, "mensaje": mensaje})
+
+        # Endpoint API: Actualizar datos del usuario
+        if url.path == "/api/usuario/datos":
+            if not conexion:
+                return self._responder_json(500, {"error": "Módulo de base de datos no disponible"})
+            
+            usuario = self._obtener_usuario_sesion()
+            if not usuario:
+                return self._responder_json(401, {"ok": False, "error": "Sesión no válida"})
+            
+            nombre = datos.get("nombre", "").strip()
+            correo = datos.get("correo", "").strip()
+            
+            if not nombre or not correo:
+                return self._responder_json(400, {"ok": False, "error": "Nombre y correo son requeridos"})
+            
+            ok, mensaje = conexion.actualizar_datos_usuario(
+                int(usuario["id"]),
+                nombre,
+                correo
+            )
+            
+            return self._responder_json(200 if ok else 400, {"ok": ok, "mensaje": mensaje})
+
         return self._responder_json(404, {"error": "Ruta no encontrada"})
 
 

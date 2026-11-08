@@ -298,6 +298,7 @@ def obtener_solicitudes(
             s.alerta_supervisor,
             s.motivo_alerta,
             COALESCE(s.estado, 'Pendiente') AS estado,
+            s.notificaciones,
             TO_CHAR(s.fecha_creacion, 'YYYY-MM-DD HH24:MI') AS fecha
         FROM solicitudes s
         LEFT JOIN usuarios u ON s.usuario_id = u.id
@@ -382,6 +383,59 @@ def obtener_estadisticas_solicitudes(usuario_id: Optional[int] = None,
     except Exception as e:
         print(f"Error al obtener estadísticas: {e}")
         return {"total": 0, "pendientes": 0, "revision": 0, "resueltas": 0}
+
+def actualizar_password_usuario(usuario_id: int, password_actual: str, password_nueva: str) -> tuple[bool, str]:
+    """Actualiza la contraseña de un usuario después de verificar la actual."""
+    query_verificar = "SELECT contrasena FROM usuarios WHERE id = %s;"
+    query_actualizar = "UPDATE usuarios SET contrasena = %s WHERE id = %s RETURNING id;"
+    
+    try:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                # Verificar contraseña actual
+                cur.execute(query_verificar, (int(usuario_id),))
+                resultado = cur.fetchone()
+                
+                if not resultado:
+                    return False, "Usuario no encontrado."
+                
+                if resultado["contrasena"] != hashear_password(password_actual):
+                    return False, "La contraseña actual es incorrecta."
+                
+                # Actualizar contraseña
+                cur.execute(query_actualizar, (hashear_password(password_nueva), int(usuario_id)))
+                
+                if cur.fetchone():
+                    conn.commit()
+                    return True, "Contraseña actualizada correctamente."
+                return False, "No se pudo actualizar la contraseña."
+    except Exception as e:
+        return False, f"Error al actualizar contraseña: {str(e)}"
+
+
+def actualizar_datos_usuario(usuario_id: int, nombre: str, correo: str) -> tuple[bool, str]:
+    """Actualiza el nombre y correo de un usuario."""
+    query = """
+        UPDATE usuarios 
+        SET nombre = %s, correo = LOWER(%s) 
+        WHERE id = %s 
+        RETURNING id;
+    """
+    
+    try:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(query, (nombre.strip(), correo.strip().lower(), int(usuario_id)))
+                
+                if cur.fetchone():
+                    conn.commit()
+                    return True, "Datos actualizados correctamente."
+                return False, "Usuario no encontrado."
+    except Exception as e:
+        error_msg = str(e)
+        if "usuarios_correo_key" in error_msg or "unique" in error_msg.lower():
+            return False, "El correo electrónico ya se encuentra registrado."
+        return False, f"Error al actualizar datos: {error_msg}"
 
 
 if __name__ == "__main__":

@@ -268,7 +268,3 @@ Bienestar Universitario		gerente.bienestar@sicou.test
 
 - Contraseña para los cuatro: 
 Prueba2026*
-
-
-
-

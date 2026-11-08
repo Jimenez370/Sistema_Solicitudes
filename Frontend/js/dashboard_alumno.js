@@ -38,13 +38,15 @@ function cambiarSeccion(seccion) {
     document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('activo'));
     const linkActivo = document.querySelector(`.sidebar nav a[data-seccion="${seccion}"]`);
     if (linkActivo) linkActivo.classList.add('activo');
-
     document.querySelectorAll('.seccion').forEach(s => s.classList.remove('activa'));
     const secTarget = document.getElementById(`sec-${seccion}`);
     if (secTarget) secTarget.classList.add('activa');
-
+    
     if (seccion === 'solicitudes') {
         cargarMisSolicitudes();
+    }
+    if (seccion === 'notificaciones') {
+        cargarNotificaciones();
     }
 }
 
@@ -234,26 +236,181 @@ function verDetalle(folio) {
     document.getElementById('modalDetalle').classList.add('activo');
 }
 
-function cerrarModal() {
-    document.getElementById('modalDetalle').classList.remove('activo');
+
+
+// ========== NOTIFICACIONES (versión real conectada a BD) ==========
+const STORAGE_KEY_LEIDAS = 'sicou_notificaciones_leidas';
+
+function obtenerNotificacionesLeidas() {
+    try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY_LEIDAS) || '[]');
+    } catch {
+        return [];
+    }
 }
 
-// ========== NOTIFICACIONES ==========
-function cargarNotificaciones() {
+function marcarNotificacionLeida(idNotif) {
+    const leidas = obtenerNotificacionesLeidas();
+    if (!leidas.includes(idNotif)) {
+        leidas.push(idNotif);
+        localStorage.setItem(STORAGE_KEY_LEIDAS, JSON.stringify(leidas));
+    }
+}
+
+function obtenerTipoNotificacion(texto) {
+    const t = texto.toLowerCase();
+    if (t.includes('alerta') || t.includes('crítico') || t.includes('revisar')) {
+        return { icono: '⚠️', clase: 'notif-alerta' };
+    }
+    if (t.includes('canalizada correctamente') || t.includes('éxito') || t.includes('resuelta') || t.includes('atendida')) {
+        return { icono: '✅', clase: 'notif-exito' };
+    }
+    if (t.includes('revisión') || t.includes('revisando')) {
+        return { icono: '🔍', clase: 'notif-info' };
+    }
+    return { icono: '📩', clase: 'notif-info' };
+}
+
+async function cargarNotificaciones() {
     const cont = document.getElementById('listaNotificaciones');
-    if (!cont) return;
-    cont.innerHTML = `
-        <div class="notif-item">
-            <div class="notif-icono">🤖</div>
-            <div class="notif-contenido">
-                <strong>Agente Inteligente Activo</strong>
-                <p>Tus solicitudes son analizadas y canalizadas automáticamente según su prioridad y categoría.</p>
-            </div>
-            <div class="notif-fecha">Ahora</div>
-        </div>
-    `;
     const contador = document.getElementById('contadorNotif');
-    if (contador) contador.textContent = "1";
+    if (!cont) return;
+
+    // Mostrar estado de carga
+    cont.innerHTML = '<div style="text-align:center;padding:20px;color:#6b7888;">Cargando notificaciones...</div>';
+
+    const token = sessionStorage.getItem('sicou_token');
+    if (!token) {
+        cont.innerHTML = '<div style="text-align:center;padding:20px;color:#dc2626;">Sesión no detectada.</div>';
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/solicitudes', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.status === 401) {
+            sessionStorage.removeItem('sicou_token');
+            sessionStorage.removeItem('sicou_usuario');
+            window.location.href = 'login.html';
+            return;
+        }
+
+        const data = await res.json();
+        const leidas = obtenerNotificacionesLeidas();
+        let noLeidas = 0;
+
+        if (!data.ok || !data.solicitudes || data.solicitudes.length === 0) {
+            cont.innerHTML = `
+                <div class="notif-item">
+                    <div class="notif-icono">📭</div>
+                    <div class="notif-contenido">
+                        <strong>Sin notificaciones</strong>
+                        <p>Aún no tienes notificaciones. Cuando envíes una solicitud, aparecerán aquí.</p>
+                    </div>
+                </div>
+            `;
+            if (contador) contador.textContent = '0';
+            return;
+        }
+
+        // Construir lista de notificaciones desde las solicitudes
+        const notifs = [];
+        data.solicitudes.forEach(s => {
+            // Parsear el campo notificaciones (viene como string JSON o array)
+            let listaNotifs = [];
+            try {
+                if (typeof s.notificaciones === 'string') {
+                    listaNotifs = JSON.parse(s.notificaciones);
+                } else if (Array.isArray(s.notificaciones)) {
+                    listaNotifs = s.notificaciones;
+                }
+            } catch (e) {
+                listaNotifs = [];
+            }
+
+            listaNotifs.forEach((texto, idx) => {
+                if (!texto.toLowerCase().includes('solicitante')) {
+                return; // Saltar notificaciones que son para el departamento
+                }
+    
+                const idNotif = `${s.folio}-${idx}`;
+                const tipo = obtenerTipoNotificacion(texto);
+                const yaLeida = leidas.includes(idNotif);
+
+                if (!yaLeida) noLeidas++;
+
+                notifs.push({
+                    id: idNotif,
+                    texto: texto,
+                    folio: s.folio,
+                    fecha: s.fecha || '-',
+                    estado: s.estado || 'Pendiente',
+                    icono: tipo.icono,
+                    clase: tipo.clase,
+                    leida: yaLeida
+                });
+            });
+        });
+
+        // Ordenar: primero las no leídas
+        notifs.sort((a, b) => (a.leida - b.leida));
+
+        // Renderizar
+        if (notifs.length === 0) {
+            cont.innerHTML = `
+                <div class="notif-item">
+                    <div class="notif-icono">📭</div>
+                    <div class="notif-contenido">
+                        <strong>Sin notificaciones</strong>
+                        <p>Aún no tienes notificaciones. Cuando envíes una solicitud, aparecerán aquí.</p>
+                    </div>
+                </div>
+            `;
+        } else {
+            cont.innerHTML = '';
+            notifs.forEach(n => {
+                const div = document.createElement('div');
+                div.className = `notif-item ${n.leida ? '' : 'no-leida'} ${n.clase}`;
+                div.style.cursor = 'pointer';
+                div.title = 'Clic para marcar como leída';
+                div.innerHTML = `
+                    <div class="notif-icono">${n.icono}</div>
+                    <div class="notif-contenido">
+                        <strong>${n.folio} - ${n.estado}</strong>
+                        <p>${n.texto}</p>
+                    </div>
+                    <div class="notif-fecha">${n.fecha}</div>
+                `;
+                div.addEventListener('click', () => {
+                    if (!n.leida) {
+                        marcarNotificacionLeida(n.id);
+                        div.classList.remove('no-leida');
+                        n.leida = true;
+                        noLeidas = Math.max(0, noLeidas - 1);
+                        if (contador) contador.textContent = noLeidas;
+                    }
+                });
+                cont.appendChild(div);
+            });
+        }
+
+        if (contador) contador.textContent = noLeidas;
+
+    } catch (e) {
+        console.warn("Error al cargar notificaciones:", e);
+        cont.innerHTML = `
+            <div class="notif-item">
+                <div class="notif-icono">⚠️</div>
+                <div class="notif-contenido">
+                    <strong>Error de conexión</strong>
+                    <p>No se pudieron cargar las notificaciones. Verifica que el servidor esté corriendo.</p>
+                </div>
+            </div>
+        `;
+        if (contador) contador.textContent = '0';
+    }
 }
 
 // ========== FORMULARIO NUEVA SOLICITUD ==========
@@ -342,6 +499,7 @@ function inicializarFormulario() {
                 // Actualizar estadísticas y tabla
                 cargarEstadisticas();
                 cargarMisSolicitudes();
+                cargarNotificaciones();
                 cambiarSeccion('solicitudes');
             } else {
                 alert('❌ Error al registrar solicitud: ' + (data.error || 'Intenta de nuevo.'));
@@ -417,16 +575,143 @@ function estimacionLocalIA(texto) {
     return { categoria: 'Servicios Escolares', prioridad: 'Media', canal: 'Servicios Escolares', confianza: 0.75 };
 }
 
-function enviarComentario() {
-    const input = document.getElementById('inputComentario');
-    const texto = input ? input.value.trim() : '';
-    if (!texto) return;
+// ========== PERFIL ==========
 
-    const chat = document.getElementById('chatMensajes');
-    const msg = document.createElement('div');
-    msg.className = 'chat-msg alumno';
-    msg.innerHTML = `<div class="autor">Tú</div>${texto}`;
-    chat.appendChild(msg);
-    input.value = '';
-    chat.scrollTop = chat.scrollHeight;
+// Función para abrir modales
+function abrirModal(idModal) {
+    const modal = document.getElementById(idModal);
+    if (modal) {
+        modal.classList.add('activo');
+        
+        // Si es el modal de editar datos, cargar los datos actuales
+        if (idModal === 'modalEditarDatos') {
+            const usuario = obtenerUsuarioActual();
+            document.getElementById('editNombre').value = usuario.nombre || '';
+            document.getElementById('editCorreo').value = usuario.correo || '';
+        }
+    }
 }
+
+function cerrarModal(idModal = 'modalDetalle') {
+    const modal = document.getElementById(idModal);
+    if (modal) {
+        modal.classList.remove('activo');
+        const form = modal.querySelector('form');
+        if (form) form.reset();
+    }
+}
+// Cerrar modales al hacer clic fuera
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('modal')) {
+        e.target.classList.remove('activo');
+    }
+});
+
+// Manejar formulario de cambiar contraseña
+document.addEventListener('DOMContentLoaded', () => {
+    const formPassword = document.getElementById('formCambiarPassword');
+    if (formPassword) {
+        formPassword.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const passwordActual = document.getElementById('passwordActual').value;
+            const passwordNueva = document.getElementById('passwordNueva').value;
+            const passwordConfirmar = document.getElementById('passwordConfirmar').value;
+            
+            if (passwordNueva !== passwordConfirmar) {
+                alert('❌ Las contraseñas nuevas no coinciden');
+                return;
+            }
+            
+            if (passwordNueva.length < 6) {
+                alert('❌ La contraseña debe tener al menos 6 caracteres');
+                return;
+            }
+            
+            const token = obtenerToken();
+            if (!token) {
+                alert('Sesión no detectada. Inicia sesión nuevamente.');
+                return;
+            }
+            
+            try {
+                const respuesta = await fetch('/api/usuario/password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        password_actual: passwordActual,
+                        password_nueva: passwordNueva
+                    })
+                });
+                
+                const data = await respuesta.json();
+                
+                if (respuesta.ok && data.ok) {
+                    alert('✅ Contraseña actualizada correctamente');
+                    cerrarModal('modalCambiarPassword');
+                } else {
+                    alert('❌ ' + (data.mensaje || data.error || 'Error al cambiar contraseña'));
+                }
+            } catch (error) {
+                console.error('Error al cambiar contraseña:', error);
+                alert('⚠️ No se pudo comunicar con el servidor');
+            }
+        });
+    }
+    
+    // Manejar formulario de editar datos
+    const formEditar = document.getElementById('formEditarDatos');
+    if (formEditar) {
+        formEditar.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const nuevoNombre = document.getElementById('editNombre').value.trim();
+            const nuevoCorreo = document.getElementById('editCorreo').value.trim();
+            
+            const token = obtenerToken();
+            if (!token) {
+                alert('Sesión no detectada. Inicia sesión nuevamente.');
+                return;
+            }
+            
+            try {
+                const respuesta = await fetch('/api/usuario/datos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        nombre: nuevoNombre,
+                        correo: nuevoCorreo
+                    })
+                });
+                
+                const data = await respuesta.json();
+                
+                if (respuesta.ok && data.ok) {
+                    // Actualizar en sessionStorage
+                    const usuario = obtenerUsuarioActual();
+                    usuario.nombre = nuevoNombre;
+                    usuario.correo = nuevoCorreo;
+                    sessionStorage.setItem('sicou_usuario', JSON.stringify(usuario));
+                    
+                    // Actualizar vista
+                    cargarDatosUsuario();
+                    
+                    alert('✅ Datos actualizados correctamente');
+                    cerrarModal('modalEditarDatos');
+                } else {
+                    alert('❌ ' + (data.mensaje || data.error || 'Error al actualizar datos'));
+                }
+            } catch (error) {
+                console.error('Error al editar datos:', error);
+                alert('⚠️ No se pudo comunicar con el servidor');
+            }
+        });
+    }
+});
+

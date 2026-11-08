@@ -221,13 +221,71 @@
                         </div>
                     </div>
                     <div class="perfil-acciones">
-                        <button class="btn-secundario">Cambiar contraseña</button>
-                        <button class="btn-secundario">Editar datos</button>
+                        <button class="btn-secundario" onclick="abrirModal('modalCambiarPassword')">Cambiar contraseña</button>
+                        <button class="btn-secundario" onclick="abrirModal('modalEditarDatos')">Editar datos</button>
                     </div>
                 </section>
             </section>
 
         </main>
+    </div>
+
+        <!-- MODAL: Cambiar Contraseña -->
+    <div id="modalCambiarPassword" class="modal">
+        <div class="modal-contenido modal-pequeno">
+            <div class="modal-header">
+                <h3>🔒 Cambiar Contraseña</h3>
+                <button class="btn-cerrar" onclick="cerrarModal('modalCambiarPassword')">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="formCambiarPassword">
+                    <div class="grupo-campos">
+                        <label for="passwordActual">Contraseña actual *</label>
+                        <input type="password" id="passwordActual" required>
+                    </div>
+                    <div class="grupo-campos">
+                        <label for="passwordNueva">Nueva contraseña *</label>
+                        <input type="password" id="passwordNueva" required minlength="6">
+                        <small class="ayuda-campo">Mínimo 6 caracteres</small>
+                    </div>
+                    <div class="grupo-campos">
+                        <label for="passwordConfirmar">Confirmar nueva contraseña *</label>
+                        <input type="password" id="passwordConfirmar" required minlength="6">
+                    </div>
+                    <div class="acciones-form">
+                        <button type="button" class="btn-secundario" onclick="cerrarModal('modalCambiarPassword')">Cancelar</button>
+                        <button type="submit" class="btn-primario">Actualizar contraseña</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Editar Datos -->
+    <div id="modalEditarDatos" class="modal">
+        <div class="modal-contenido modal-pequeno">
+            <div class="modal-header">
+                <h3>✏️ Editar Datos Personales</h3>
+                <button class="btn-cerrar" onclick="cerrarModal('modalEditarDatos')">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="formEditarDatos">
+                    <div class="grupo-campos">
+                        <label for="editNombre">Nombre completo *</label>
+                        <input type="text" id="editNombre" required>
+                    </div>
+                    <div class="grupo-campos">
+                        <label for="editCorreo">Correo electrónico *</label>
+                        <input type="email" id="editCorreo" required>
+                        <small class="ayuda-campo">⚠️ Cambiar el correo puede afectar tu acceso</small>
+                    </div>
+                    <div class="acciones-form">
+                        <button type="button" class="btn-secundario" onclick="cerrarModal('modalEditarDatos')">Cancelar</button>
+                        <button type="submit" class="btn-primario">Guardar cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- Modal de detalle de solicitud -->
@@ -251,14 +309,6 @@
                 <div class="detalle-respuesta" id="seccionRespuesta" style="display:none;">
                     <h4>Respuesta del área</h4>
                     <div class="respuesta-box" id="modalRespuesta"></div>
-                </div>
-                <div class="chat-area" id="chatArea">
-                    <h4>Comentarios</h4>
-                    <div class="chat-mensajes" id="chatMensajes"></div>
-                    <div class="chat-input">
-                        <input type="text" id="inputComentario" placeholder="Escribe un comentario...">
-                        <button onclick="enviarComentario()">Enviar</button>
-                    </div>
                 </div>
             </div>
         </div>

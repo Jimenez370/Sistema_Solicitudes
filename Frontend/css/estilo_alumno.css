@@ -463,65 +463,6 @@
     font-size: 14px;
 }
 
-.chat-mensajes {
-    max-height: 250px;
-    overflow-y: auto;
-    background: #f8fafc;
-    padding: 15px;
-    border-radius: 6px;
-    margin-bottom: 10px;
-}
-
-.chat-msg {
-    margin-bottom: 12px;
-    padding: 10px 14px;
-    border-radius: 8px;
-    max-width: 80%;
-    font-size: 13px;
-}
-
-.chat-msg.alumno {
-    background: #1d5c96;
-    color: white;
-    margin-left: auto;
-}
-
-.chat-msg.gerente {
-    background: white;
-    border: 1px solid #e5eaf0;
-    color: #263445;
-}
-
-.chat-msg .autor {
-    font-size: 11px;
-    opacity: 0.8;
-    margin-bottom: 4px;
-    font-weight: 600;
-}
-
-.chat-input {
-    display: flex;
-    gap: 10px;
-}
-
-.chat-input input {
-    flex: 1;
-    padding: 10px;
-    border: 1px solid #d1dbe8;
-    border-radius: 5px;
-    font-size: 13px;
-}
-
-.chat-input button {
-    background: #1d5c96;
-    color: white;
-    border: none;
-    padding: 10px 18px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 13px;
-}
-
 /* Secciones (ocultar/mostrar) */
 .seccion {
     display: none;
@@ -630,6 +571,65 @@
     vertical-align: middle;
 }
 
+
+/* Tipos de notificación */
+.notif-alerta {
+    border-left-color: #dc2626 !important;
+    background: #fef2f2;
+}
+
+.notif-alerta.no-leida {
+    background: #fee2e2;
+    border-left-color: #b91c1c !important;
+}
+
+.notif-exito {
+    border-left-color: #16a34a !important;
+    background: #f0fdf4;
+}
+
+.notif-exito.no-leida {
+    background: #dcfce7;
+    border-left-color: #15803d !important;
+}
+
+.notif-info {
+    border-left-color: #28649e !important;
+}
+
+/* Efecto hover para indicar que es clickeable */
+.notif-item[style*="cursor: pointer"]:hover {
+    transform: translateX(4px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Modal pequeño */
+.modal-pequeno {
+    max-width: 500px;
+}
+
+/* Ayuda de campos */
+.ayuda-campo {
+    display: block;
+    margin-top: 6px;
+    color: #6b7888;
+    font-size: 11px;
+    font-style: italic;
+}
+
+/* Botón peligro */
+.btn-peligro {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #dc2626;
+}
+
+.btn-peligro:hover {
+    background: #fee2e2;
+    border-color: #dc2626;
+}
+
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
+
