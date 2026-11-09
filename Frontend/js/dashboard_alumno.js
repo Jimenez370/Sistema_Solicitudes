@@ -93,7 +93,7 @@ async function cargarEstadisticas() {
         });
 
         if (res.status === 401) {
-            alert('Tu sesión expiró. Inicia sesión nuevamente.');
+            await SicouUI.alert('Tu sesión expiró. Inicia sesión nuevamente.');
             sessionStorage.removeItem('sicou_token');
             sessionStorage.removeItem('sicou_usuario');
             window.location.href = 'login.html';
@@ -125,7 +125,7 @@ async function cargarMisSolicitudes(filtros = {}) {
     const token = obtenerToken();
 
     if (!token) {
-        alert('Sesión no detectada. Inicia sesión nuevamente.');
+        await SicouUI.alert('Sesión no detectada. Inicia sesión nuevamente.');
         window.location.href = 'login.html';
         return;
     }
@@ -146,7 +146,7 @@ async function cargarMisSolicitudes(filtros = {}) {
         if (res.status === 401) {
             sessionStorage.removeItem('sicou_token');
             sessionStorage.removeItem('sicou_usuario');
-            alert('Tu sesión expiró. Inicia sesión nuevamente.');
+            await SicouUI.alert('Tu sesión expiró. Inicia sesión nuevamente.');
             window.location.href = 'login.html';
             return;
         }
@@ -187,7 +187,7 @@ function renderizarTablaSolicitudes(solicitudes, filtros = {}) {
     // Botón de cancelar: solo visible si está Pendiente
     const puedeCancelar = (s.estado === 'Pendiente');
     const btnCancelar = puedeCancelar 
-        ? `<button class="btn-cancelar" onclick="cancelarSolicitud('${s.folio}')" title="Cancelar solicitud">✕ Cancelar</button>`
+        ? `<button class="btn-cancelar" onclick="cancelarSolicitud('${s.folio}')" title="Cancelar solicitud"><svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 6 12 12M6 18 18 6"/></svg> Cancelar</button>`
         : '';
     
     tr.innerHTML = `
@@ -199,7 +199,7 @@ function renderizarTablaSolicitudes(solicitudes, filtros = {}) {
         <td><span class="badge ${getClaseEstado(s.estado)}">${s.estado || 'Pendiente'}</span></td>
         <td style="text-align:center;">
         ${s.archivo_adjunto 
-            ? '<a href="/uploads/' + s.archivo_adjunto + '" target="_blank" title="Ver archivo adjunto" style="font-size:20px; text-decoration:none;">📎</a>' 
+            ? '<a href="/uploads/' + s.archivo_adjunto + '" target="_blank" title="Ver archivo adjunto" style="font-size:20px; text-decoration:none;"><svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m8 13 6-6a3 3 0 0 1 4 4l-8 8a5 5 0 0 1-7-7l9-9"/></svg></a>' 
             : '<span style="color:#cbd5e1;">—</span>'}
         </td>
         <td>
@@ -242,13 +242,13 @@ function verDetalle(folio) {
     document.getElementById('modalDepto').textContent = s.depto_nombre || s.canal_destino || 'Servicios Escolares';
     document.getElementById('modalDescripcion').textContent = s.descripcion;
     
-    // 📥 Mostrar archivo adjunto si existe
+    //  Mostrar archivo adjunto si existe
     const modalBody = document.querySelector('#modalDetalle .modal-body');
     let adjuntoHtml = '';
     if (s.archivo_adjunto) {
         adjuntoHtml = `
             <div style="margin-top:15px; padding:12px; background:#eaf4ff; border-radius:6px; border-left:4px solid #28649e;">
-                <strong style="color:#15345b;">📎 Archivo adjunto:</strong>
+                <strong style="color:#15345b;"><svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m8 13 6-6a3 3 0 0 1 4 4l-8 8a5 5 0 0 1-7-7l9-9"/></svg> Archivo adjunto:</strong>
                 <a href="/uploads/${s.archivo_adjunto}" target="_blank" 
                    style="color:#2563eb; font-weight:bold; text-decoration:underline; margin-left:8px;">
                     Ver / Descargar archivo
@@ -301,15 +301,15 @@ function marcarNotificacionLeida(idNotif) {
 function obtenerTipoNotificacion(texto) {
     const t = texto.toLowerCase();
     if (t.includes('alerta') || t.includes('crítico') || t.includes('revisar')) {
-        return { icono: '⚠️', clase: 'notif-alerta' };
+        return { icono: '<svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v4m0 4h.01"/></svg>', clase: 'notif-alerta' };
     }
     if (t.includes('canalizada correctamente') || t.includes('éxito') || t.includes('resuelta') || t.includes('atendida')) {
-        return { icono: '✅', clase: 'notif-exito' };
+        return { icono: '<svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12 4 4L19 6"/></svg>', clase: 'notif-exito' };
     }
     if (t.includes('revisión') || t.includes('revisando')) {
-        return { icono: '🔍', clase: 'notif-info' };
+        return { icono: '<svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/></svg>', clase: 'notif-info' };
     }
-    return { icono: '📩', clase: 'notif-info' };
+    return { icono: '<svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/></svg>', clase: 'notif-info' };
 }
 
 async function cargarNotificaciones() {
@@ -345,7 +345,7 @@ async function cargarNotificaciones() {
         if (!data.ok || !data.solicitudes || data.solicitudes.length === 0) {
             cont.innerHTML = `
                 <div class="notif-item">
-                    <div class="notif-icono">📭</div>
+                    <div class="notif-icono"><svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/></svg></div>
                     <div class="notif-contenido">
                         <strong>Sin notificaciones</strong>
                         <p>Aún no tienes notificaciones. Cuando envíes una solicitud, aparecerán aquí.</p>
@@ -402,7 +402,7 @@ async function cargarNotificaciones() {
         if (notifs.length === 0) {
             cont.innerHTML = `
                 <div class="notif-item">
-                    <div class="notif-icono">📭</div>
+                    <div class="notif-icono"><svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/></svg></div>
                     <div class="notif-contenido">
                         <strong>Sin notificaciones</strong>
                         <p>Aún no tienes notificaciones. Cuando envíes una solicitud, aparecerán aquí.</p>
@@ -443,7 +443,7 @@ async function cargarNotificaciones() {
         console.warn("Error al cargar notificaciones:", e);
         cont.innerHTML = `
             <div class="notif-item">
-                <div class="notif-icono">⚠️</div>
+                <div class="notif-icono"><svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v4m0 4h.01"/></svg></div>
                 <div class="notif-contenido">
                     <strong>Error de conexión</strong>
                     <p>No se pudieron cargar las notificaciones. Verifica que el servidor esté corriendo.</p>
@@ -494,7 +494,7 @@ function inicializarFormulario() {
         const archivo = inputArchivo.files[0];
 
         if (!texto) {
-            alert('Por favor describe tu problema o solicitud.');
+            await SicouUI.alert('Por favor describe tu problema o solicitud.');
             return;
         }
 
@@ -537,13 +537,7 @@ function inicializarFormulario() {
 
             if (respuesta.ok && data.ok) {
                 const a = data.analisis;
-                alert(`✅ ¡Solicitud enviada y clasificada con éxito!\n\n` +
-                      `📌 Folio: SOL-${String(data.solicitud_id).padStart(3, '0')}\n` +
-                      `📂 Categoría: ${a.categoria}\n` +
-                      `⚡ Prioridad asignada: ${a.prioridad}\n` +
-                      `🏢 Departamento destino: ${a.canal}\n` +
-                      `🎯 Confianza IA: ${(a.confianza * 100).toFixed(0)}%\n\n` +
-                      `La solicitud ya se encuentra disponible para el departamento correspondiente y el administrador.`);
+                await SicouUI.solicitud(data.solicitud_id, a);
 
                 form.reset();
                 document.getElementById('resultadoIA').style.display = 'none';
@@ -556,11 +550,11 @@ function inicializarFormulario() {
                 cargarNotificaciones();
                 cambiarSeccion('solicitudes');
             } else {
-                alert('❌ Error al registrar solicitud: ' + (data.error || 'Intenta de nuevo.'));
+                await SicouUI.alert('Error al registrar solicitud: ' + (data.error || 'Intenta de nuevo.'));
             }
         } catch (error) {
             console.error('Error al enviar solicitud:', error);
-            alert('⚠️ No se pudo comunicar con el servidor backend. Verifica que esté corriendo: python server.py');
+            await SicouUI.alert(' No se pudo comunicar con el servidor backend. Verifica que esté corriendo: python server.py');
         } finally {
             btnEnviar.disabled = false;
             btnEnviar.textContent = 'Enviar solicitud';
@@ -686,18 +680,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const passwordConfirmar = document.getElementById('passwordConfirmar').value;
             
             if (passwordNueva !== passwordConfirmar) {
-                alert('❌ Las contraseñas nuevas no coinciden');
+                await SicouUI.alert('Las contraseñas nuevas no coinciden');
                 return;
             }
             
             if (passwordNueva.length < 6) {
-                alert('❌ La contraseña debe tener al menos 6 caracteres');
+                await SicouUI.alert('La contraseña debe tener al menos 6 caracteres');
                 return;
             }
             
             const token = obtenerToken();
             if (!token) {
-                alert('Sesión no detectada. Inicia sesión nuevamente.');
+                await SicouUI.alert('Sesión no detectada. Inicia sesión nuevamente.');
                 return;
             }
             
@@ -717,14 +711,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await respuesta.json();
                 
                 if (respuesta.ok && data.ok) {
-                    alert('✅ Contraseña actualizada correctamente');
+                    await SicouUI.alert(' Contraseña actualizada correctamente');
                     cerrarModal('modalCambiarPassword');
                 } else {
-                    alert('❌ ' + (data.mensaje || data.error || 'Error al cambiar contraseña'));
+                    await SicouUI.alert('' + (data.mensaje || data.error || 'Error al cambiar contraseña'));
                 }
             } catch (error) {
                 console.error('Error al cambiar contraseña:', error);
-                alert('⚠️ No se pudo comunicar con el servidor');
+                await SicouUI.alert(' No se pudo comunicar con el servidor');
             }
         });
     }
@@ -740,7 +734,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const token = obtenerToken();
             if (!token) {
-                alert('Sesión no detectada. Inicia sesión nuevamente.');
+                await SicouUI.alert('Sesión no detectada. Inicia sesión nuevamente.');
                 return;
             }
             
@@ -769,14 +763,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Actualizar vista
                     cargarDatosUsuario();
                     
-                    alert('✅ Datos actualizados correctamente');
+                    await SicouUI.alert(' Datos actualizados correctamente');
                     cerrarModal('modalEditarDatos');
                 } else {
-                    alert('❌ ' + (data.mensaje || data.error || 'Error al actualizar datos'));
+                    await SicouUI.alert('' + (data.mensaje || data.error || 'Error al actualizar datos'));
                 }
             } catch (error) {
                 console.error('Error al editar datos:', error);
-                alert('⚠️ No se pudo comunicar con el servidor');
+                await SicouUI.alert(' No se pudo comunicar con el servidor');
             }
         });
     }
@@ -787,28 +781,28 @@ async function cancelarSolicitud(folio) {
     // Buscar la solicitud en memoria
     const s = listaSolicitudesMemoria.find(x => x.folio === folio);
     if (!s) {
-        alert('❌ No se encontró la solicitud.');
+        await SicouUI.alert('No se encontró la solicitud.');
         return;
     }
     
     // Validar estado
     if (s.estado !== 'Pendiente') {
-        alert(`❌ No se puede cancelar una solicitud en estado "${s.estado}".\nSolo se pueden cancelar solicitudes pendientes.`);
+        await SicouUI.alert(`No se puede cancelar una solicitud en estado "${s.estado}".\nSolo se pueden cancelar solicitudes pendientes.`);
         return;
     }
     
     // Confirmación
-    const confirmar = confirm(
+    const confirmar = await SicouUI.confirm(
         `¿Estás seguro de que deseas cancelar la solicitud ${folio}?\n\n` +
         `Descripción: ${s.descripcion.substring(0, 100)}${s.descripcion.length > 100 ? '...' : ''}\n\n` +
-        `⚠️ Esta acción no se puede deshacer.`
+        ` Esta acción no se puede deshacer.`
     );
     
     if (!confirmar) return;
     
     const token = obtenerToken();
     if (!token) {
-        alert('Sesión no detectada. Inicia sesión nuevamente.');
+        await SicouUI.alert('Sesión no detectada. Inicia sesión nuevamente.');
         return;
     }
     
@@ -825,16 +819,16 @@ async function cancelarSolicitud(folio) {
         const data = await respuesta.json();
         
         if (respuesta.ok && data.ok) {
-            alert('✅ ' + (data.mensaje || 'Solicitud cancelada correctamente.'));
+            await SicouUI.alert(' ' + (data.mensaje || 'Solicitud cancelada correctamente.'));
             // Recargar tabla y estadísticas
             cargarEstadisticas();
             cargarMisSolicitudes();
             cargarNotificaciones();
         } else {
-            alert('❌ ' + (data.mensaje || data.error || 'Error al cancelar la solicitud.'));
+            await SicouUI.alert('' + (data.mensaje || data.error || 'Error al cancelar la solicitud.'));
         }
     } catch (error) {
         console.error('Error al cancelar solicitud:', error);
-        alert('⚠️ No se pudo comunicar con el servidor.');
+        await SicouUI.alert(' No se pudo comunicar con el servidor.');
     }
 }

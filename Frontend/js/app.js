@@ -127,7 +127,7 @@ async function cargarDatosDashboard() {
 
         if (!token){
             console.warn("No se encontró token de sesión.");
-            alert("Tu sesión ha expirado o no estás autenticado. Serás redirigido al login.");
+            await SicouUI.alert("Tu sesión ha expirado o no estás autenticado. Serás redirigido al login.");
             return window.location.href = "login.html";
         }
 
@@ -144,7 +144,7 @@ async function cargarDatosDashboard() {
             sessionStorage.removeItem("sicou_token");
             sessionStorage.removeItem("sicou_usuario");
 
-            alert("Tu sesión ha expirado. Inicia sesión nuevamente.");
+            await SicouUI.alert("Tu sesión ha expirado. Inicia sesión nuevamente.");
             window.location.href = "login.html";
             return;
         }
@@ -184,7 +184,7 @@ async function cargarDatosDashboard() {
             tbody.innerHTML = `
                 <tr>
                     <td colspan="7" style="text-align:center;padding:25px;color:#dc2626;">
-                        ⚠️ Servidor no detectado o error de conexión.
+                        <svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v4m0 4h.01"/></svg> Servidor no detectado o error de conexión.
                         Verifica que 'python server.py' esté corriendo.
                     </td>
                 </tr>
@@ -258,7 +258,7 @@ function aplicarFiltros() {
 
         // Badge si tiene alerta para supervisor humano
         const badgeAlerta = s.alerta_supervisor
-            ? `<span class="badge-alerta">⚠️ Alerta Supervisor</span>`
+            ? `<span class="badge-alerta"><svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v4m0 4h.01"/></svg> Alerta Supervisor</span>`
             : "";
 
         tr.innerHTML = `
@@ -293,7 +293,7 @@ function aplicarFiltros() {
             </td>
             <td style="text-align:center;">
                 ${s.archivo_adjunto 
-                    ? '<a href="/uploads/' + s.archivo_adjunto + '" target="_blank" title="Ver archivo adjunto" style="font-size:20px; text-decoration:none;">📎</a>' 
+                    ? '<a href="/uploads/' + s.archivo_adjunto + '" target="_blank" title="Ver archivo adjunto" style="font-size:20px; text-decoration:none;"><svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m8 13 6-6a3 3 0 0 1 4 4l-8 8a5 5 0 0 1-7-7l9-9"/></svg></a>' 
                     : '<span style="color:#cbd5e1;">—</span>'}
             </td>
             <td>
@@ -331,7 +331,7 @@ function renderizarNotificaciones(solicitudes) {
     if (alertas.length === 0) {
         contenedor.innerHTML = `
             <div class="notif-card" style="border-left-color:#16a34a;">
-                <div class="notif-icono">✅</div>
+                <div class="notif-icono"><svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12 4 4L19 6"/></svg></div>
                 <div class="notif-cuerpo">
                     <h4>Sin alertas pendientes</h4>
                     <p>No existen solicitudes críticas que requieran atención inmediata del supervisor.</p>
@@ -347,7 +347,7 @@ function renderizarNotificaciones(solicitudes) {
         const div = document.createElement("div");
         div.className = "notif-card alerta";
         div.innerHTML = `
-            <div class="notif-icono">⚠️</div>
+            <div class="notif-icono"><svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v4m0 4h.01"/></svg></div>
             <div class="notif-cuerpo">
                 <h4>Atención Requerida: ${s.folio} - ${s.categoria}</h4>
                 <p><strong>Motivo de alerta:</strong> ${s.motivo_alerta || "Caso crítico o baja confianza"}</p>
@@ -388,11 +388,11 @@ async function cambiarEstadoDirecto(solicitudId, nuevoEstado) {
         if (respuesta.ok && data.ok) {
             cargarDatosDashboard();
         } else {
-            alert("No se pudo actualizar el estado: " + (data.error || "Error"));
+            await SicouUI.alert("No se pudo actualizar el estado: " + (data.error || "Error"));
         }
     } catch (e) {
         console.error("Error al actualizar estado:", e);
-        alert("Error de conexión al actualizar estado.");
+        await SicouUI.alert("Error de conexión al actualizar estado.");
     }
 }
 
@@ -517,13 +517,13 @@ function verDetalleSolicitudArea(solicitudId) {
                         </div>
                     </div>
 
-                    <!-- 📥 ENLACE DE ARCHIVO ADJUNTO (GERENCIA) -->
+                    <!--  ENLACE DE ARCHIVO ADJUNTO (GERENCIA) -->
                     ${s.archivo_adjunto ? `
                         <div class="detalle-seccion">
                             <h3>Archivo Adjunto</h3>
                             <div class="detalle-descripcion">
                                 <a href="/uploads/${s.archivo_adjunto}" target="_blank" style="color: #2563eb; font-weight: bold; text-decoration: underline;">
-                                    📥 Descargar / Ver archivo adjunto (${s.archivo_adjunto})
+                                    <svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg> Descargar / Ver archivo adjunto (${s.archivo_adjunto})
                                 </a>
                             </div>
                         </div>

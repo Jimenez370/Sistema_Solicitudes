@@ -6,6 +6,8 @@
     <title>Sistema Universitario | Mi Panel</title>
     <link rel="stylesheet" href="../css/estilo_areas.css">
     <link rel="stylesheet" href="../css/estilo_alumno.css">
+    <link rel="stylesheet" href="../css/ui.css">
+    <script src="../js/ui.js"></script>
 </head>
 <body>
     <!-- Encabezado (mismo estilo) -->
@@ -108,7 +110,7 @@
 
                         <!-- RESULTADO DEL ANÁLISIS IA (aparece automáticamente al escribir) -->
                         <div id="resultadoIA" class="resultado-ia" style="display:none;">
-                            <h3>🤖 Análisis automático de la IA</h3>
+                            <h3><svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="6" width="16" height="15" rx="4"/><path d="M12 2v4m-4 6h.01M16 12h.01M8 17h8"/></svg> Análisis automático de la IA</h3>
                             <p class="resultado-ia-info">Tu solicitud será canalizada de la siguiente manera:</p>
                             <div class="grid-resultado">
                                 <div class="resultado-item">
@@ -214,7 +216,7 @@
 
                 <section class="seccion-solicitudes perfil-card">
                     <div class="perfil-info">
-                        <div class="avatar">👤</div>
+                        <div class="avatar"><svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></div>
                         <div class="datos-perfil">
                             <h3 id="perfilNombre">Nombre del alumno</h3>
                             <p id="perfilCorreo">correo@universidad.edu</p>
@@ -236,8 +238,8 @@
     <div id="modalCambiarPassword" class="modal">
         <div class="modal-contenido modal-pequeno">
             <div class="modal-header">
-                <h3>🔒 Cambiar Contraseña</h3>
-                <button class="btn-cerrar" onclick="cerrarModal('modalCambiarPassword')">✕</button>
+                <h3><svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4m-4 5v2"/></svg> Cambiar Contraseña</h3>
+                <button class="btn-cerrar" aria-label="Cerrar" onclick="cerrarModal('modalCambiarPassword')"><svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 6 12 12M6 18 18 6"/></svg></button>
             </div>
             <div class="modal-body">
                 <form id="formCambiarPassword">
@@ -267,8 +269,8 @@
     <div id="modalEditarDatos" class="modal">
         <div class="modal-contenido modal-pequeno">
             <div class="modal-header">
-                <h3>✏️ Editar Datos Personales</h3>
-                <button class="btn-cerrar" onclick="cerrarModal('modalEditarDatos')">✕</button>
+                <h3><svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m16 3 5 5-12 12-6 1 1-6L16 3Zm-3 3 5 5"/></svg> Editar Datos Personales</h3>
+                <button class="btn-cerrar" aria-label="Cerrar" onclick="cerrarModal('modalEditarDatos')"><svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 6 12 12M6 18 18 6"/></svg></button>
             </div>
             <div class="modal-body">
                 <form id="formEditarDatos">
@@ -279,7 +281,7 @@
                     <div class="grupo-campos">
                         <label for="editCorreo">Correo electrónico *</label>
                         <input type="email" id="editCorreo" required>
-                        <small class="ayuda-campo">⚠️ Cambiar el correo puede afectar tu acceso</small>
+                        <small class="ayuda-campo"><svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v4m0 4h.01"/></svg> Cambiar el correo puede afectar tu acceso</small>
                     </div>
                     <div class="acciones-form">
                         <button type="button" class="btn-secundario" onclick="cerrarModal('modalEditarDatos')">Cancelar</button>
@@ -295,7 +297,7 @@
         <div class="modal-contenido">
             <div class="modal-header">
                 <h3>Detalle de solicitud <span id="modalFolio"></span></h3>
-                <button class="btn-cerrar" onclick="cerrarModal()">✕</button>
+                <button class="btn-cerrar" aria-label="Cerrar" onclick="cerrarModal()"><svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 6 12 12M6 18 18 6"/></svg></button>
             </div>
             <div class="modal-body">
                 <div class="detalle-grid">
