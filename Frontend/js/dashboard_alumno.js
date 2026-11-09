@@ -197,6 +197,11 @@ function renderizarTablaSolicitudes(solicitudes, filtros = {}) {
         <td>${s.fecha || '-'}</td>
         <td><span class="badge badge-${prioClase}">${s.prioridad || 'Media'}</span></td>
         <td><span class="badge ${getClaseEstado(s.estado)}">${s.estado || 'Pendiente'}</span></td>
+        <td style="text-align:center;">
+        ${s.archivo_adjunto 
+            ? '<a href="/uploads/' + s.archivo_adjunto + '" target="_blank" title="Ver archivo adjunto" style="font-size:20px; text-decoration:none;">📎</a>' 
+            : '<span style="color:#cbd5e1;">—</span>'}
+        </td>
         <td>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
                 <button class="btn-ver" onclick="verDetalle('${s.folio}')">Ver</button>
@@ -230,14 +235,28 @@ function aplicarFiltros() {
 function verDetalle(folio) {
     const s = listaSolicitudesMemoria.find(x => x.folio === folio);
     if (!s) return;
-
     document.getElementById('modalFolio').textContent = s.folio;
     document.getElementById('modalTipo').textContent = s.categoria || 'General';
     document.getElementById('modalPrioridad').textContent = s.prioridad || 'Media';
     document.getElementById('modalEstado').textContent = s.estado || 'Pendiente';
     document.getElementById('modalDepto').textContent = s.depto_nombre || s.canal_destino || 'Servicios Escolares';
     document.getElementById('modalDescripcion').textContent = s.descripcion;
-
+    
+    // 📥 Mostrar archivo adjunto si existe
+    const modalBody = document.querySelector('#modalDetalle .modal-body');
+    let adjuntoHtml = '';
+    if (s.archivo_adjunto) {
+        adjuntoHtml = `
+            <div style="margin-top:15px; padding:12px; background:#eaf4ff; border-radius:6px; border-left:4px solid #28649e;">
+                <strong style="color:#15345b;">📎 Archivo adjunto:</strong>
+                <a href="/uploads/${s.archivo_adjunto}" target="_blank" 
+                   style="color:#2563eb; font-weight:bold; text-decoration:underline; margin-left:8px;">
+                    Ver / Descargar archivo
+                </a>
+            </div>
+        `;
+    }
+    // Insertar antes del cierre del modal-body
     const seccionResp = document.getElementById('seccionRespuesta');
     if (s.motivo_alerta && s.alerta_supervisor) {
         seccionResp.style.display = 'block';
@@ -245,7 +264,16 @@ function verDetalle(folio) {
     } else {
         seccionResp.style.display = 'none';
     }
-
+    // Agregar el HTML del adjunto si no existe ya
+    let existente = document.getElementById('adjuntoAlumno');
+    if (existente) existente.remove();
+    if (adjuntoHtml) {
+        const divAdj = document.createElement('div');
+        divAdj.id = 'adjuntoAlumno';
+        divAdj.innerHTML = adjuntoHtml;
+        modalBody.appendChild(divAdj);
+    }
+    
     document.getElementById('modalDetalle').classList.add('activo');
 }
 
@@ -458,29 +486,39 @@ function inicializarFormulario() {
         }, 1200);
     });
 
-    // Envío oficial de la solicitud a PostgreSQL
+        // Envío oficial de la solicitud a PostgreSQL
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const texto = descripcion.value.trim();
+        const inputArchivo = document.getElementById('archivo');
+        const archivo = inputArchivo.files[0];
 
         if (!texto) {
             alert('Por favor describe tu problema o solicitud.');
             return;
         }
 
-        const usuario = obtenerUsuarioActual();
-        if (!usuario.id) {
-            alert('Sesión no detectada. Por favor vuelve a iniciar sesión.');
-            window.location.href = 'login.html';
-            return;
-        }
-
         btnEnviar.disabled = true;
-        btnEnviar.textContent = 'Canalizando solicitud...';
+        btnEnviar.textContent = 'Procesando archivo y enviando...';
+
+        // Función auxiliar para leer archivo en Base64
+        const leerArchivoComoBase64 = (file) => {
+            return new Promise((resolve, reject) => {
+                if (!file) return resolve(null);
+                const reader = new FileReader();
+                reader.onload = () => resolve({ nombre: file.name, data: reader.result });
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
+        };
 
         try {
-            const token = obtenerToken();
+            let archivoInfo = null;
+            if (archivo) {
+                archivoInfo = await leerArchivoComoBase64(archivo);
+            }
 
+            const token = obtenerToken();
             const respuesta = await fetch('/api/solicitudes', {
                 method: 'POST',
                 headers: {
@@ -488,11 +526,14 @@ function inicializarFormulario() {
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    descripcion: texto
+                    descripcion: texto,
+                    archivo_nombre: archivoInfo ? archivoInfo.nombre : null,
+                    archivo_base64: archivoInfo ? archivoInfo.data : null
                 })
             });
 
             const data = await respuesta.json();
+            
 
             if (respuesta.ok && data.ok) {
                 const a = data.analisis;

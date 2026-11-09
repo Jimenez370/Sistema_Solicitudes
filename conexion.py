@@ -221,9 +221,9 @@ def guardar_solicitud(usuario_id: int, resultado) -> tuple[bool, str, Optional[i
         INSERT INTO solicitudes (
             usuario_id, departamento_id, descripcion, categoria, prioridad,
             canal_destino, confianza, alerta_supervisor, motivo_alerta,
-            palabras_clave, reglas_activadas, conceptos, tripletas, notificaciones
+            palabras_clave, reglas_activadas, conceptos, tripletas, notificaciones, archivo_adjunto
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id;
     """
     try:
@@ -264,6 +264,7 @@ def guardar_solicitud(usuario_id: int, resultado) -> tuple[bool, str, Optional[i
                         json.dumps(resultado.conceptos, ensure_ascii=False),
                         json.dumps(resultado.tripletas, ensure_ascii=False),
                         json.dumps(resultado.notificaciones, ensure_ascii=False),
+                        resultado.archivo_adjunto
                     ),
                 )
                 solicitud_id = cur.fetchone()["id"]
@@ -336,6 +337,7 @@ def obtener_solicitudes(
             s.conceptos,
             s.tripletas,
             s.notificaciones,
+            s.archivo_adjunto,
             TO_CHAR(s.fecha_creacion, 'YYYY-MM-DD HH24:MI') AS fecha
         FROM solicitudes s
         LEFT JOIN usuarios u ON s.usuario_id = u.id

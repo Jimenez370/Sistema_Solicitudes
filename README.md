@@ -321,4 +321,8 @@ INSERT INTO departamentos (id, nombre, activo) VALUES
 ON CONFLICT (id) DO UPDATE SET nombre = EXCLUDED.nombre, activo = EXCLUDED.activo;
 
 
+# añadir esta columna a la tabla solicitudes
+
+ALTER TABLE solicitudes ADD COLUMN IF NOT EXISTS archivo_adjunto VARCHAR(255);
+
 

@@ -44,6 +44,7 @@ class Resultado:
     canal: str
     alerta_supervisor: bool
     motivo_alerta: str
+    archivo_adjunto: str | None = None
     reglas: list = field(default_factory=list)
     conceptos: list = field(default_factory=list)
     tripletas: list = field(default_factory=list)

@@ -183,7 +183,7 @@ async function cargarDatosDashboard() {
         if (tbody) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="6" style="text-align:center;padding:25px;color:#dc2626;">
+                    <td colspan="7" style="text-align:center;padding:25px;color:#dc2626;">
                         ⚠️ Servidor no detectado o error de conexión.
                         Verifica que 'python server.py' esté corriendo.
                     </td>
@@ -225,7 +225,7 @@ function aplicarFiltros() {
     }
 
     if (lista.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:#64748b;">No hay solicitudes registradas con estos filtros.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:30px;color:#64748b;">No hay solicitudes registradas con estos filtros.</td></tr>`;
         return;
     }
 
@@ -290,6 +290,11 @@ function aplicarFiltros() {
                 <span style="background:${colorEstado};color:${textEstado};padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;display:inline-block;">
                     ${s.estado || "Pendiente"}
                 </span>
+            </td>
+            <td style="text-align:center;">
+                ${s.archivo_adjunto 
+                    ? '<a href="/uploads/' + s.archivo_adjunto + '" target="_blank" title="Ver archivo adjunto" style="font-size:20px; text-decoration:none;">📎</a>' 
+                    : '<span style="color:#cbd5e1;">—</span>'}
             </td>
             <td>
                 <div style="display:flex;gap:6px;align-items:center;">
@@ -511,6 +516,18 @@ function verDetalleSolicitudArea(solicitudId) {
                             ${s.descripcion || 'Sin descripción'}
                         </div>
                     </div>
+
+                    <!-- 📥 ENLACE DE ARCHIVO ADJUNTO (GERENCIA) -->
+                    ${s.archivo_adjunto ? `
+                        <div class="detalle-seccion">
+                            <h3>Archivo Adjunto</h3>
+                            <div class="detalle-descripcion">
+                                <a href="/uploads/${s.archivo_adjunto}" target="_blank" style="color: #2563eb; font-weight: bold; text-decoration: underline;">
+                                    📥 Descargar / Ver archivo adjunto (${s.archivo_adjunto})
+                                </a>
+                            </div>
+                        </div>
+                    ` : ''}
 
                 </div>
 

@@ -3,6 +3,10 @@
 .env.local
 *.env
 
+uploads/
+!uploads/.gitkeep
+
+
 # Caché de compilación de Python
 __pycache__/
 *.py[cod]

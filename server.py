@@ -84,6 +84,25 @@ class CustomHandler(SimpleHTTPRequestHandler):
         url = urlparse(self.path)
         params = parse_qs(url.query)
 
+        # 📥 NUEVO: Servir archivos adjuntos desde la carpeta uploads de la raíz
+        if url.path.startswith("/uploads/"):
+            ruta_archivo = os.path.join(_DIR, url.path.lstrip("/"))
+            if os.path.exists(ruta_archivo) and os.path.isfile(ruta_archivo):
+                self.send_response(200)
+                import mimetypes
+                tipo_mime, _ = mimetypes.guess_type(ruta_archivo)
+                if tipo_mime:
+                    self.send_header("Content-Type", tipo_mime)
+                self.end_headers()
+                with open(ruta_archivo, "rb") as f:
+                    self.wfile.write(f.read())
+                return
+            else:
+                self.send_response(404)
+                self.end_headers()
+                self.wfile.write(b"Archivo no encontrado")
+                return
+
         # Redirigir la raíz al login
         if url.path == "/" or url.path == "":
             self.send_response(302)
@@ -341,6 +360,30 @@ class CustomHandler(SimpleHTTPRequestHandler):
 
             # 3. Obtener los datos
             descripcion = (datos.get("descripcion") or "").strip()
+            archivo_nombre = datos.get("archivo_nombre")
+            archivo_base64 = datos.get("archivo_base64")
+
+            nombre_archivo_guardado = None
+            if archivo_base64 and archivo_nombre:
+                try:
+                    import base64
+                    # Limpiar prefijo data:image/...;base64, si existe
+                    if "," in archivo_base64:
+                        archivo_base64 = archivo_base64.split(",")[1]
+                    
+                    # Generar nombre único para evitar colisiones
+                    ext = os.path.splitext(archivo_nombre)[1]
+                    nombre_unico = f"adjunto_{secrets.token_hex(8)}{ext}"
+                    ruta_uploads = os.path.join(_DIR, "uploads")
+                    os.makedirs(ruta_uploads, exist_ok=True)
+                    
+                    ruta_completa = os.path.join(ruta_uploads, nombre_unico)
+                    with open(ruta_completa, "wb") as fh:
+                        fh.write(base64.b64decode(archivo_base64))
+                    
+                    nombre_archivo_guardado = nombre_unico
+                except Exception as e:
+                    print(f"Error al guardar archivo adjunto: {e}")
 
             if not descripcion:
                 return self._responder_json(
@@ -354,8 +397,8 @@ class CustomHandler(SimpleHTTPRequestHandler):
             try:
                 # 4. Procesar la solicitud con el agente inteligente
                 resultado = agente_ia.procesar(descripcion)
+                setattr(resultado, "archivo_adjunto", nombre_archivo_guardado)
 
-                # 5. Guardar en PostgreSQL
                 ok, mensaje, solicitud_id = conexion.guardar_solicitud(
                     int(usuario_id),
                     resultado

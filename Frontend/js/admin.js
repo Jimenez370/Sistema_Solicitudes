@@ -344,6 +344,7 @@ function renderizarTabla(lista) {
                         ? `<span class="badge-alerta-si" title="${escaparHtml(sol.motivo_alerta || 'Requiere revisión de supervisor')}">⚠️ Alerta</span>` 
                         : `<span class="badge-alerta-no">—</span>`}
                 </td>
+                </td>
                 <td>
                     <select class="select-tabla-estado ${estadoClase}" data-id="${sol.id}" onchange="cambiarEstadoSolicitud(${sol.id}, this.value, this)">
                         <option value="Pendiente" ${estado === "Pendiente" ? "selected" : ""}>Pendiente</option>
@@ -353,6 +354,11 @@ function renderizarTabla(lista) {
                     </select>
                 </td>
                 <td><small>${escaparHtml(fecha)}</small></td>
+                <td style="text-align:center;">
+                    ${sol.archivo_adjunto 
+                        ? '<a href="/uploads/' + sol.archivo_adjunto + '" target="_blank" title="Ver archivo adjunto" style="font-size:20px; text-decoration:none;">📎</a>' 
+                        : '<span style="color:#cbd5e1;">—</span>'}
+                </td>
                 <td>
                     <button class="btn-detalle" onclick="abrirModalDetalle(${sol.id})">Ver detalle</button>
                 </td>
@@ -518,6 +524,17 @@ function abrirModalDetalle(solicitudId) {
                 <label>Descripción Completa de la Solicitud</label>
                 <p>${escaparHtml(sol.descripcion || "Sin descripción")}</p>
             </div>
+
+            ${sol.archivo_adjunto ? `
+                <div class="campo-detalle campo-detalle-full">
+                    <label>Archivo Adjunto</label>
+                    <p>
+                        <a href="/uploads/${sol.archivo_adjunto}" target="_blank" style="color: #2563eb; font-weight: bold; text-decoration: underline;">
+                            📥 Descargar / Ver archivo adjunto (${sol.archivo_adjunto})
+                        </a>
+                    </p>
+                </div>
+            ` : ''}
 
             <div class="modal-fila">
                 <div class="campo-detalle">
