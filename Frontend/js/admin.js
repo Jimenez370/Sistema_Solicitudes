@@ -306,7 +306,7 @@ function renderizarTabla(lista) {
         const descripcion = sol.descripcion || "";
         const categoria = sol.categoria || "Trámite General";
         const prioridad = (sol.prioridad || "Media").toLowerCase();
-        const confianza = sol.confianza ? Math.round(sol.confianza * 100) : 85;
+        const confianza = (sol.categoria === "Desconocida" || sol.confianza === undefined || sol.confianza === null) ? 0 : Math.round(Number(sol.confianza) * 100);
         const alerta = Boolean(sol.alerta_supervisor);
         const estado = sol.estado || "Pendiente";
         const fecha = sol.fecha || "Reciente";
@@ -499,7 +499,7 @@ function abrirModalDetalle(solicitudId) {
         if (sol.reglas_activadas) reglas = typeof sol.reglas_activadas === "string" ? JSON.parse(sol.reglas_activadas) : sol.reglas_activadas;
     } catch (_) {}
 
-    const confianza = sol.confianza ? Math.round(sol.confianza * 100) : 85;
+    const confianza = (sol.categoria === "Desconocida" || sol.confianza === undefined || sol.confianza === null) ? 0 : Math.round(Number(sol.confianza) * 100);
 
     if (modalContenido) {
         modalContenido.innerHTML = `

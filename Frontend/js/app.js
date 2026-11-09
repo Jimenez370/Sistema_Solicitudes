@@ -281,7 +281,7 @@ function aplicarFiltros() {
                         Prioridad ${s.prioridad || "Baja"}
                     </span>
                     <span style="font-size:11px;color:#94a3b8;margin-left:6px;">
-                        Confianza IA: ${((s.confianza || 0.8) * 100).toFixed(0)}%
+                        Confianza IA: ${(s.categoria === "Desconocida" || s.confianza === undefined || s.confianza === null ? 0 : Math.round(Number(s.confianza) * 100))}%
                     </span>
                 </div>
             </td>
@@ -402,7 +402,8 @@ function verDetalleSolicitudArea(solicitudId) {
     const anterior = document.getElementById('modalDetalleSolicitud');
     if (anterior) anterior.remove();
 
-    const confianza = ((s.confianza || 0) * 100).toFixed(1);
+    const confNum = (s.categoria === "Desconocida" || s.confianza === undefined || s.confianza === null) ? 0 : Number(s.confianza);
+    const confianza = (confNum * 100).toFixed(1);
     const departamento = s.depto_nombre || s.canal_destino || 'No asignado';
 
     const modal = document.createElement('div');

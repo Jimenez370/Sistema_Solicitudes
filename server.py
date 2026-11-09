@@ -296,7 +296,7 @@ class CustomHandler(SimpleHTTPRequestHandler):
                         "categoria": res.categoria,
                         "prioridad": res.prioridad,
                         "canal": res.canal,
-                        "confianza": float(res.confianza) if hasattr(res, "confianza") else 0.8,
+                        "confianza": float(res.confianza) if hasattr(res, "confianza") and res.confianza is not None else 0.0,
                         "alerta_supervisor": res.alerta_supervisor,
                         "motivo_alerta": res.motivo_alerta,
                         "palabras_clave": res.palabras_clave,

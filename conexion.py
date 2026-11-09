@@ -363,7 +363,9 @@ def obtener_solicitudes(
                 filas = []
                 for row in cur.fetchall():
                     item = dict(row)
-                    if item.get("confianza") is not None:
+                    if item.get("categoria") == "Desconocida" or item.get("confianza") is None:
+                        item["confianza"] = 0.0
+                    else:
                         try:
                             item["confianza"] = float(item["confianza"])
                         except Exception:

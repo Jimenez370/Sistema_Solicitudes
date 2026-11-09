@@ -64,6 +64,7 @@ class AgenteSolicitudes:
         conceptos = ontologia.conceptos_detectados(texto)
         if cat_ml == "Desconocida":
             categoria, prioridad, alerta_regla, reglas = cat_ml, "Media", False, []
+            confianza = 0.0
         else:
             r = aplicar_reglas(texto, cat_ml)
             categoria, prioridad, alerta_regla, reglas = r.categoria, r.prioridad, r.alerta_humana, r.reglas_activadas
@@ -82,15 +83,23 @@ class AgenteSolicitudes:
         
         # SUPERVISIÓN HUMANA
         motivo = ""
-        if alerta_regla:
+        if categoria == "Desconocida":
+            confianza = 0.0
+            motivo = f"Texto incoherente o desconocido (confianza: 0.00 < {self.umbral})"
+            canal = BANDEJA_SUPERVISOR
+            alerta = True
+        elif alerta_regla:
             motivo = "Criticidad alta (reglas: " + ", ".join(reglas) + ")"
             # Solo enviar al supervisor si la alerta viene de R8 o R9 (ambigüedad/mixto)
             if any(r in ["R8_texto_ambiguo", "R9_solicitud_mixta"] for r in reglas):
                 canal = BANDEJA_SUPERVISOR
+            alerta = True
         elif confianza < self.umbral:
             motivo = f"Confianza baja ({confianza:.2f} < {self.umbral})"
             canal = BANDEJA_SUPERVISOR
-        alerta = bool(motivo)
+            alerta = True
+        else:
+            alerta = False
 
         # ACCIÓN: notificaciones simuladas
         notif = []
