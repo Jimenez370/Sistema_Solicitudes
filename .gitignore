@@ -3,7 +3,7 @@
 .env.local
 *.env
 
-uploads/
+uploads/*
 !uploads/.gitkeep
 
 
