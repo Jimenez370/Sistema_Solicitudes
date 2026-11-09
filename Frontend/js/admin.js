@@ -10,8 +10,8 @@ let solicitudesActuales = [];
 let deptoSeleccionadoId = null; // null = todas
 let deptoSeleccionadoNombre = "Todas las Solicitudes";
 
-document.addEventListener("DOMContentLoaded", () => {
-    validarAutenticacion();
+document.addEventListener("DOMContentLoaded", async () => {
+    if (!(await validarAutenticacion())) return;
     inicializarNavbar();
     inicializarEventosDepartamentos();
     inicializarHerramientasFiltro();
@@ -23,14 +23,14 @@ document.addEventListener("DOMContentLoaded", () => {
 /**
  * 1. Valida que el usuario tenga sesión activa y rol de administrador
  */
-function validarAutenticacion() {
+async function validarAutenticacion() {
     tokenSesion = sessionStorage.getItem("sicou_token");
     const rawUsuario = sessionStorage.getItem("sicou_usuario");
 
     if (!tokenSesion || !rawUsuario) {
         console.warn("Sin sesión activa. Redirigiendo al login...");
         window.location.href = "login.html";
-        return;
+        return false;
     }
 
     try {
@@ -46,9 +46,11 @@ function validarAutenticacion() {
         .trim();
 
     if (rolNormalizado !== "administrador" && rolNormalizado !== "admin") {
-        alert("Acceso denegado. Este portal es exclusivo para el Administrador.");
+        await SicouUI.alert("Acceso denegado. Este portal es exclusivo para el Administrador.");
         window.location.href = "login.html";
+        return false;
     }
+    return true;
 }
 
 /**
@@ -260,7 +262,7 @@ async function cargarSolicitudes(deptoId = deptoSeleccionadoId) {
             tbody.innerHTML = `
                 <tr>
                     <td colspan="12" style="text-align: center; color: var(--rojo-error); padding: 30px;">
-                        ⚠️ Error de conexión al consultar solicitudes. Verifica que <code>server.py</code> esté en ejecución.
+                        <svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v4m0 4h.01"/></svg> Error de conexión al consultar solicitudes. Verifica que <code>server.py</code> esté en ejecución.
                     </td>
                 </tr>
             `;
@@ -341,7 +343,7 @@ function renderizarTabla(lista) {
                 </td>
                 <td>
                     ${alerta 
-                        ? `<span class="badge-alerta-si" title="${escaparHtml(sol.motivo_alerta || 'Requiere revisión de supervisor')}">⚠️ Alerta</span>` 
+                        ? `<span class="badge-alerta-si" title="${escaparHtml(sol.motivo_alerta || 'Requiere revisión de supervisor')}"><svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v4m0 4h.01"/></svg> Alerta</span>` 
                         : `<span class="badge-alerta-no">—</span>`}
                 </td>
                 </td>
@@ -356,7 +358,7 @@ function renderizarTabla(lista) {
                 <td><small>${escaparHtml(fecha)}</small></td>
                 <td style="text-align:center;">
                     ${sol.archivo_adjunto 
-                        ? '<a href="/uploads/' + sol.archivo_adjunto + '" target="_blank" title="Ver archivo adjunto" style="font-size:20px; text-decoration:none;">📎</a>' 
+                        ? '<a href="/uploads/' + sol.archivo_adjunto + '" target="_blank" title="Ver archivo adjunto" style="font-size:20px; text-decoration:none;"><svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m8 13 6-6a3 3 0 0 1 4 4l-8 8a5 5 0 0 1-7-7l9-9"/></svg></a>' 
                         : '<span style="color:#cbd5e1;">—</span>'}
                 </td>
                 <td>
@@ -530,7 +532,7 @@ function abrirModalDetalle(solicitudId) {
                     <label>Archivo Adjunto</label>
                     <p>
                         <a href="/uploads/${sol.archivo_adjunto}" target="_blank" style="color: #2563eb; font-weight: bold; text-decoration: underline;">
-                            📥 Descargar / Ver archivo adjunto (${sol.archivo_adjunto})
+                            <svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg> Descargar / Ver archivo adjunto (${sol.archivo_adjunto})
                         </a>
                     </p>
                 </div>
@@ -560,7 +562,7 @@ function abrirModalDetalle(solicitudId) {
 
             ${sol.alerta_supervisor ? `
                 <div class="alerta-box">
-                    <strong>⚠️ ALERTA DE SUPERVISIÓN HUMANA:</strong>
+                    <strong><svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v4m0 4h.01"/></svg> ALERTA DE SUPERVISIÓN HUMANA:</strong>
                     <div style="margin-top: 4px;">${escaparHtml(sol.motivo_alerta || "Esta solicitud fue marcada para revisión inmediata por reglas del sistema.")}</div>
                 </div>
             ` : ""}

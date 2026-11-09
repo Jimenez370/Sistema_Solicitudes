@@ -56,6 +56,8 @@
             margin-left: 6px;
         }
     </style>
+    <link rel="stylesheet" href="../css/ui.css">
+    <script src="../js/ui.js"></script>
 </head>
 
 <body>
@@ -126,9 +128,9 @@
                         <h2>Estado del Agente Inteligente</h2>
                     </div>
                     <div style="font-size: 14px; color: #475569; line-height: 1.8;">
-                        <p>✔ <strong>Modelo de Clasificación (ML):</strong> TF-IDF + Regresión Logística (Activo y entrenado).</p>
-                        <p>✔ <strong>Conocimiento Simbólico:</strong> Grafo de Ontología con NetworkX y Motor de Reglas SI-ENTONCES.</p>
-                        <p>✔ <strong>Supervisión Humana:</strong> Detección automática de criticidad y canalización por departamentos.</p>
+                        <p><svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12 4 4L19 6"/></svg> <strong>Modelo de Clasificación (ML):</strong> TF-IDF + Regresión Logística (Activo y entrenado).</p>
+                        <p><svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12 4 4L19 6"/></svg> <strong>Conocimiento Simbólico:</strong> Grafo de Ontología con NetworkX y Motor de Reglas SI-ENTONCES.</p>
+                        <p><svg class="sicou-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12 4 4L19 6"/></svg> <strong>Supervisión Humana:</strong> Detección automática de criticidad y canalización por departamentos.</p>
                         <div style="margin-top: 15px;">
                             <button onclick="cambiarVistaArea('solicitudes')" style="background:#1d5c96;color:white;border:none;padding:10px 18px;border-radius:6px;cursor:pointer;font-weight:600;">
                                 Ir a la Bandeja de Solicitudes →
@@ -171,7 +173,7 @@
                     </div>
 
                     <div style="flex:1;">
-                        <input type="text" id="inputBuscar" placeholder="🔍 Buscar por alumno, folio o palabras clave..." oninput="aplicarFiltros()" style="width:100%;">
+                        <input type="text" id="inputBuscar" placeholder="Buscar por alumno, folio o palabras clave..." oninput="aplicarFiltros()" style="width:100%;">
                     </div>
                 </div>
 
