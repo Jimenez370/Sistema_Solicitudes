@@ -538,26 +538,38 @@ async function analizarConIA(texto) {
             body: JSON.stringify({ texto })
         });
 
+        // Si el servidor responde con un error HTTP (4xx o 5xx), lanzamos un error manualmente
+        if (!respuesta.ok) {
+            throw new Error(`Error HTTP: ${respuesta.status}`);
+        }
+
         const data = await respuesta.json();
-        if (respuesta.ok && data.ok) {
+        
+        if (data.ok) {
             mostrarResultadoIA(data);
             return data;
+        } else {
+            throw new Error(data.error || "Respuesta no exitosa del servidor");
         }
+
     } catch (e) {
         console.warn("Fallo análisis remoto, usando estimación local:", e);
+        
+        // Fallback si el servidor está desconectado o devuelve error
+        const local = estimacionLocalIA(texto);
+        mostrarResultadoIA(local);
+        return local;
     }
-
-    // Fallback si el servidor está desconectado
-    const local = estimacionLocalIA(texto);
-    mostrarResultadoIA(local);
-    return local;
 }
-
 function mostrarResultadoIA(res) {
-    document.getElementById('iaCategoria').textContent = res.categoria || 'General';
+    document.getElementById('iaCategoria').textContent = res.categoria || 'Desconocida';
     document.getElementById('iaPrioridad').textContent = res.prioridad || 'Media';
-    document.getElementById('iaCanal').textContent = res.canal || 'Servicios Escolares';
-    document.getElementById('iaConfianza').textContent = ((res.confianza || 0.8) * 100).toFixed(0) + '%';
+    document.getElementById('iaCanal').textContent = res.canal || 'Bandeja de revisión por Supervisor Humano';
+    
+    // Respetar el 0% real y evitar que el operador || fuerce el 80%
+    const confianzaReal = (res.confianza !== undefined && res.confianza !== null) ? res.confianza : 0.0;
+    document.getElementById('iaConfianza').textContent = (confianzaReal * 100).toFixed(0) + '%';
+    
     document.getElementById('resultadoIA').style.display = 'block';
 
     const elemPrioridad = document.getElementById('iaPrioridad');
@@ -574,18 +586,19 @@ function mostrarResultadoIA(res) {
 function estimacionLocalIA(texto) {
     const t = texto.toLowerCase();
     if (t.includes('calificacion') || t.includes('nota') || t.includes('examen')) {
-        return { categoria: 'Académica', prioridad: 'Baja', canal: 'Servicios Escolares', confianza: 0.82 };
+        return { categoria: 'Académica', prioridad: 'Baja', canal: 'Coordinación Académica', confianza: 0.82 };
     }
     if (t.includes('red') || t.includes('plataforma') || t.includes('contraseña') || t.includes('sistema')) {
         return { categoria: 'Soporte Técnico', prioridad: 'Alta', canal: 'Soporte Técnico', confianza: 0.89 };
     }
     if (t.includes('beca') || t.includes('pago') || t.includes('colegiatura')) {
-        return { categoria: 'Financiera/Becas', prioridad: 'Media', canal: 'Caja y Finanzas', confianza: 0.85 };
+        return { categoria: 'Financiera/Becas', prioridad: 'Media', canal: 'Servicios Escolares', confianza: 0.85 };
     }
-    if (t.includes('acoso') || t.includes('amenaza') || t.includes('urgente') || t.includes('violencia')) {
+    if (t.includes('acoso') || t.includes('amenaza') || t.includes('urgente') || t.includes('violencia') || t.includes('incomodo')) {
         return { categoria: 'Bienestar Universitario', prioridad: 'Alta', canal: 'Bienestar Universitario', confianza: 0.95 };
     }
-    return { categoria: 'Servicios Escolares', prioridad: 'Media', canal: 'Servicios Escolares', confianza: 0.75 };
+    // Si es texto basura o desconocido, retornar 0% y derivar al supervisor
+    return { categoria: 'Desconocida', prioridad: 'Baja', canal: 'Bandeja de revisión por Supervisor Humano', confianza: 0.0 };
 }
 
 // ========== PERFIL ==========
