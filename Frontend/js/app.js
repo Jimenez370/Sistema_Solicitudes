@@ -6,6 +6,19 @@
 let solicitudesGlobal = [];
 
 document.addEventListener("DOMContentLoaded", () => {
+    // Redirigir al administrador a su interfaz exclusiva
+    const rawUsuario = sessionStorage.getItem("sicou_usuario");
+    if (rawUsuario) {
+        try {
+            const u = JSON.parse(rawUsuario);
+            const rolNorm = (u.rol || "").toLowerCase().trim();
+            if (rolNorm === "administrador" || rolNorm === "admin") {
+                window.location.href = "admin.html";
+                return;
+            }
+        } catch (_) {}
+    }
+
     inicializarDatosUsuario();
     inicializarBotonCerrarSesion();
     inicializarNavegacionSidebar();
@@ -15,7 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /**
  * Cambia la bandeja visible en el panel del administrador
  */
-function cambiarVistaAdmin(vistaId) {
+function cambiarVistaArea(vistaId) {
     // 1. Marcar botón activo en el sidebar
     document.querySelectorAll(".sidebar nav a").forEach((a) => {
         a.classList.remove("activo");
@@ -49,7 +62,7 @@ function inicializarNavegacionSidebar() {
             e.preventDefault();
             const vista = enlace.getAttribute("data-vista");
             if (vista) {
-                cambiarVistaAdmin(vista);
+                cambiarVistaArea(vista);
             }
         });
     });
@@ -61,18 +74,18 @@ function inicializarNavegacionSidebar() {
 function inicializarDatosUsuario() {
     const rawUsuario = sessionStorage.getItem("sicou_usuario");
     const usuario = rawUsuario ? JSON.parse(rawUsuario) : {
-        nombre: "administrador",
-        correo: "adminsicou@unach.mx",
-        rol: "administrador",
-        facultad_nombre: "Administración Central"
+        nombre: "Gerente de Área",
+        correo: "gerencia@unach.mx",
+        rol: "gerente_area",
+        departamento_nombre: "Área Asignada"
     };
 
     // Header
-    const spanNombre = document.getElementById("nombreUsuarioAdmin");
-    if (spanNombre) spanNombre.textContent = `${usuario.nombre} (${usuario.rol || "Administrador"})`;
+    const spanNombre = document.getElementById("nombreUsuarioArea") || document.getElementById("nombreUsuarioAdmin");
+    if (spanNombre) spanNombre.textContent = `${usuario.nombre} (${usuario.rol || "Gerente de Área"})`;
 
     const h3Area = document.getElementById("nombreArea");
-    if (h3Area) h3Area.textContent = `Panel Central - ${usuario.facultad_nombre || "Administración Central"}`;
+    if (h3Area) h3Area.textContent = `Panel de Área - ${usuario.departamento_nombre || usuario.facultad_nombre || "Área Universitaria"}`;
 
     // Vista de Perfil
     const pNombre = document.getElementById("perfilNombre");
@@ -80,10 +93,10 @@ function inicializarDatosUsuario() {
     const pRol = document.getElementById("perfilRol");
     const pFac = document.getElementById("perfilFacultad");
 
-    if (pNombre) pNombre.textContent = usuario.nombre || "Administrador";
-    if (pCorreo) pCorreo.textContent = usuario.correo || "adminsicou@unach.mx";
-    if (pRol) pRol.textContent = `Rol: ${usuario.rol || "Administrador"}`;
-    if (pFac) pFac.textContent = usuario.facultad_nombre || "Administración Central";
+    if (pNombre) pNombre.textContent = usuario.nombre || "Gerente de Área";
+    if (pCorreo) pCorreo.textContent = usuario.correo || "gerencia@unach.mx";
+    if (pRol) pRol.textContent = `Rol: ${usuario.rol || "Gerente de Área"}`;
+    if (pFac) pFac.textContent = usuario.departamento_nombre || usuario.facultad_nombre || "Área Asignada";
 }
 
 /**
@@ -285,7 +298,7 @@ function aplicarFiltros() {
                         <option value="En revisión" ${s.estado === "En revisión" || s.estado === "En revision" ? "selected" : ""}>En revisión</option>
                         <option value="Resuelta" ${s.estado === "Resuelta" || s.estado === "Atendida" ? "selected" : ""}>Resuelta</option>
                     </select>
-                    <button onclick="verDetalleSolicitudAdmin(${s.id})" style="background:#1d5c96;color:white;border:none;padding:5px 10px;border-radius:6px;font-size:12px;cursor:pointer;">
+                    <button onclick="verDetalleSolicitudArea(${s.id})" style="background:#1d5c96;color:white;border:none;padding:5px 10px;border-radius:6px;font-size:12px;cursor:pointer;">
                         Ver
                     </button>
                 </div>
@@ -301,7 +314,7 @@ function aplicarFiltros() {
  */
 function renderizarNotificaciones(solicitudes) {
     const contenedor = document.getElementById("contenedorAlertas");
-    const contador = document.getElementById("contadorNotifAdmin");
+    const contador = document.getElementById("contadorNotifArea") || document.getElementById("contadorNotifAdmin");
     if (!contenedor) return;
 
     const alertas = solicitudes.filter((s) => s.alerta_supervisor);
@@ -338,7 +351,7 @@ function renderizarNotificaciones(solicitudes) {
                 <div class="notif-meta">Canal: ${s.depto_nombre || s.canal_destino} | Fecha: ${s.fecha}</div>
             </div>
             <div>
-                <button onclick="verDetalleSolicitudAdmin(${s.id})" style="background:#dc2626;color:white;border:none;padding:7px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;">
+                <button onclick="verDetalleSolicitudArea(${s.id})" style="background:#dc2626;color:white;border:none;padding:7px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;">
                     Revisar caso
                 </button>
             </div>
@@ -381,7 +394,7 @@ async function cambiarEstadoDirecto(solicitudId, nuevoEstado) {
 /**
  * Muestra el análisis completo del agente IA para la solicitud seleccionada
  */
-function verDetalleSolicitudAdmin(solicitudId) {
+function verDetalleSolicitudArea(solicitudId) {
     const s = solicitudesGlobal.find(x => x.id === solicitudId);
     if (!s) return;
 
@@ -586,7 +599,9 @@ function cerrarDetalleSolicitud() {
 }
 
 // Exportar funciones para los atributos inline del HTML
-window.cambiarVistaAdmin = cambiarVistaAdmin;
+window.cambiarVistaArea = cambiarVistaArea;
+window.cambiarVistaAdmin = cambiarVistaArea; // Compatibilidad
 window.aplicarFiltros = aplicarFiltros;
 window.cambiarEstadoDirecto = cambiarEstadoDirecto;
-window.verDetalleSolicitudAdmin = verDetalleSolicitudAdmin;
+window.verDetalleSolicitudArea = verDetalleSolicitudArea;
+window.verDetalleSolicitudAdmin = verDetalleSolicitudArea; // Compatibilidad
