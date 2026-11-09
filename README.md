@@ -300,6 +300,25 @@ UPDATE usuarios
 SET facultad_id = 13
 WHERE id = 8;
 
+__________________________________
+interfaz de admon
+__________________________________
+
+Ejecutar este script en pgadmin:
+# Sincronización de la tabla departamentos con los 4 departamentos oficiales y la columna activo
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'departamentos' AND column_name = 'activo') THEN
+        ALTER TABLE departamentos ADD COLUMN activo BOOLEAN DEFAULT TRUE;
+    END IF;
+END $$;
+
+INSERT INTO departamentos (id, nombre, activo) VALUES
+    (1, 'Coordinación Académica', TRUE),
+    (2, 'Servicios Escolares', TRUE),
+    (3, 'Soporte Técnico', TRUE),
+    (4, 'Bienestar Universitario', TRUE)
+ON CONFLICT (id) DO UPDATE SET nombre = EXCLUDED.nombre, activo = EXCLUDED.activo;
 
 
 

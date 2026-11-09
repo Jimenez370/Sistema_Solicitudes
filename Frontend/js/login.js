@@ -105,7 +105,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     if (
                         rol === "administrador" ||
-                        rol === "admin" ||
+                        rol === "admin"
+                    ) {
+                        window.location.href = "admin.html";
+                    } else if (
                         rol === "gerente_area" ||
                         rol === "gerente_de_area"
                     ) {

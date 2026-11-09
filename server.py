@@ -1,7 +1,6 @@
 """Servidor Web y API para el Sistema Universitario (SICOU_IA).
 Sirve los archivos de Frontend y conecta la interfaz con el Agente Inteligente y PostgreSQL.
 """
-
 import datetime
 import decimal
 import json
@@ -102,6 +101,16 @@ class CustomHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 return self._responder_json(500, {"error": str(e)})
 
+        # Endpoint API: Obtener departamentos
+        if url.path == "/api/departamentos":
+            if not conexion:
+                return self._responder_json(500, {"error": "Módulo de base de datos no disponible"})
+            try:
+                departamentos = conexion.obtener_departamentos()
+                return self._responder_json(200, {"ok": True, "departamentos": departamentos})
+            except Exception as e:
+                return self._responder_json(500, {"error": str(e)})
+
         # Endpoint API: Consultar solicitudes dependiendo el rol del usuario
         if url.path == "/api/solicitudes":
 
@@ -124,18 +133,28 @@ class CustomHandler(SimpleHTTPRequestHandler):
             usuario_id = usuario["id"]
             departamento_id = usuario.get("departamento_id")
 
-            # 2. Obtener el estado solicitado (si existe)
+            # 2. Obtener el estado y departamento solicitados
             estado = params.get("estado", [None])[0]
+            param_dept = params.get("departamento_id", [None])[0]
+            dept_filtro = None
+            if param_dept and str(param_dept).strip() and str(param_dept) != "todos":
+                try:
+                    dept_filtro = int(param_dept)
+                except ValueError:
+                    dept_filtro = None
 
             # 3. Determinar qué solicitudes puede consultar
             if rol == "administrador":
 
-                # El administrador puede consultar todas
+                # El administrador puede consultar todas o filtrar por departamento específico
                 solicitudes = conexion.obtener_solicitudes(
+                    departamento_id=dept_filtro,
                     estado=estado
                 )
 
-                estadisticas = conexion.obtener_estadisticas_solicitudes()
+                estadisticas = conexion.obtener_estadisticas_solicitudes(
+                    departamento_id=dept_filtro
+                )
 
             elif rol == "gerente_area":
 

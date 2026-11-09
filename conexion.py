@@ -274,6 +274,39 @@ def guardar_solicitud(usuario_id: int, resultado) -> tuple[bool, str, Optional[i
         return False, f"Error al guardar la solicitud: {str(e)}", None
 
 
+def obtener_departamentos() -> list[dict[str, Any]]:
+    """Consulta la lista de los 4 departamentos oficiales y el conteo de solicitudes por cada uno."""
+    deptos_default = [
+        {"id": 1, "nombre": "Coordinación Académica", "activo": True, "total": 0, "pendientes": 0},
+        {"id": 2, "nombre": "Servicios Escolares", "activo": True, "total": 0, "pendientes": 0},
+        {"id": 3, "nombre": "Soporte Técnico", "activo": True, "total": 0, "pendientes": 0},
+        {"id": 4, "nombre": "Bienestar Universitario", "activo": True, "total": 0, "pendientes": 0},
+    ]
+    query = """
+        SELECT 
+            d.id, 
+            d.nombre, 
+            COALESCE(d.activo, TRUE) AS activo,
+            COUNT(s.id)::int AS total,
+            COUNT(s.id) FILTER (WHERE s.estado = 'Pendiente' OR s.estado IS NULL)::int AS pendientes
+        FROM departamentos d
+        LEFT JOIN solicitudes s ON (s.departamento_id = d.id OR LOWER(s.canal_destino) = LOWER(d.nombre))
+        WHERE d.activo IS NULL OR d.activo = TRUE
+        GROUP BY d.id, d.nombre, d.activo
+        ORDER BY d.id ASC;
+    """
+    try:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(query)
+                res = [dict(r) for r in cur.fetchall()]
+                if res:
+                    return res
+    except Exception as e:
+        print(f"Error al obtener departamentos de la BD: {e}")
+    return deptos_default
+
+
 def obtener_solicitudes(
     usuario_id: Optional[int] = None,
     departamento_id: Optional[int] = None,
@@ -298,6 +331,10 @@ def obtener_solicitudes(
             s.alerta_supervisor,
             s.motivo_alerta,
             COALESCE(s.estado, 'Pendiente') AS estado,
+            s.palabras_clave,
+            s.reglas_activadas,
+            s.conceptos,
+            s.tripletas,
             s.notificaciones,
             TO_CHAR(s.fecha_creacion, 'YYYY-MM-DD HH24:MI') AS fecha
         FROM solicitudes s
@@ -311,8 +348,8 @@ def obtener_solicitudes(
         query += " AND s.usuario_id = %s"
         params.append(int(usuario_id))
     if departamento_id:
-        query += " AND s.departamento_id = %s"
-        params.append(int(departamento_id))
+        query += " AND (s.departamento_id = %s OR (s.departamento_id IS NULL AND LOWER(s.canal_destino) = (SELECT LOWER(nombre) FROM departamentos WHERE id = %s)))"
+        params.extend([int(departamento_id), int(departamento_id)])
     if estado and estado != "todos":
         query += " AND s.estado = %s"
         params.append(estado)
@@ -371,8 +408,8 @@ def obtener_estadisticas_solicitudes(usuario_id: Optional[int] = None,
         query += " AND usuario_id = %s"
         params.append(int(usuario_id))
     if departamento_id:
-        query += " AND departamento_id = %s"
-        params.append(int(departamento_id))
+        query += " AND (departamento_id = %s OR (departamento_id IS NULL AND LOWER(canal_destino) = (SELECT LOWER(nombre) FROM departamentos WHERE id = %s)))"
+        params.extend([int(departamento_id), int(departamento_id)])
     try:
         with get_connection() as conn:
             with conn.cursor() as cur:
