@@ -326,3 +326,28 @@ ON CONFLICT (id) DO UPDATE SET nombre = EXCLUDED.nombre, activo = EXCLUDED.activ
 ALTER TABLE solicitudes ADD COLUMN IF NOT EXISTS archivo_adjunto VARCHAR(255);
 
 
+-- Los tres roles del sistema
+INSERT INTO roles (id, nombre, descripcion) VALUES
+    (1, 'administrador', 'Acceso general a todos los departamentos'),
+    (2, 'estudiante', 'Acceso a sus propias solicitudes'),
+    (3, 'gerente_area', 'Acceso únicamente a su departamento')
+ON CONFLICT (id) DO UPDATE
+SET nombre = EXCLUDED.nombre,
+    descripcion = EXCLUDED.descripcion;
+
+SELECT
+    u.correo,
+    u.rol AS rol_en_usuario,
+    u.rol_id,
+    r.nombre AS rol_asignado,
+    u.departamento_id,
+    d.nombre AS departamento
+FROM usuarios u
+LEFT JOIN roles r ON r.id = u.rol_id
+LEFT JOIN departamentos d ON d.id = u.departamento_id
+WHERE LOWER(u.correo) IN (
+    'gerente.academica@sicou.test',
+    'gerente.escolares@sicou.test',
+    'gerente.soporte@sicou.test',
+    'gerente.bienestar@sicou.test'
+)

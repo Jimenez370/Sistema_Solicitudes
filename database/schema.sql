@@ -31,10 +31,14 @@ CREATE TABLE IF NOT EXISTS roles (
 );
 
 -- Inserción de Roles: Administrador y Estudiante
+-- Los tres roles del sistema
 INSERT INTO roles (id, nombre, descripcion) VALUES
-    (1, 'administrador', 'Acceso al panel administrativo y de gerencia'),
-    (2, 'estudiante', 'Acceso al portal de solicitudes del alumno')
-ON CONFLICT (id) DO UPDATE SET nombre = EXCLUDED.nombre, descripcion = EXCLUDED.descripcion;
+    (1, 'administrador', 'Acceso general a todos los departamentos'),
+    (2, 'estudiante', 'Acceso a sus propias solicitudes'),
+    (3, 'gerente_area', 'Acceso únicamente a su departamento')
+ON CONFLICT (id) DO UPDATE
+SET nombre = EXCLUDED.nombre,
+    descripcion = EXCLUDED.descripcion;
 
 
 -- 3. Tabla de Usuarios
